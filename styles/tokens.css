@@ -1,0 +1,220 @@
+/* ============================================================================
+   GALLIUM — DESIGN TOKENS
+   Single source of truth. Imported by app/globals.css.
+
+   THIS FILE IS THE CONTRACT. Read the rules at the bottom before you write
+   a single class name. If you need a value that is not defined here, stop
+   and report it. Do not invent one.
+   ============================================================================ */
+
+:root {
+  /* ---- surfaces ---------------------------------------------------------
+     Not pure black. #0a0b0e is a dark neutral with a faint blue cast; the
+     three steps are close together on purpose so elevation reads as a
+     whisper, not a stack of cards. */
+  --bg-base: #0a0b0e;
+  --bg-panel: #0e1014;
+  --bg-elevated: #12151a;
+
+  /* ---- rules ------------------------------------------------------------
+     Alpha, not solid hex, so a rule sits correctly on any of the three
+     surfaces without needing a per-surface variant. --rule is the default;
+     --rule-strong is for a boundary that carries structural meaning
+     (table header underline, panel edge against a scroll region). */
+  --rule: rgba(255, 255, 255, 0.07);
+  --rule-strong: rgba(255, 255, 255, 0.13);
+
+  /* ---- text -------------------------------------------------------------
+     Exactly three. See RULE 1. */
+  --text-primary: #d6d8dc;
+  --text-secondary: #8b9099;
+  --text-dim: #5a6068;
+
+  /* ---- semantic colour --------------------------------------------------
+     Desaturated on purpose. A saturated palette at equal weight reads as
+     decoration; these are muted enough that when one of them appears it
+     means something. See RULE 4 on how many may co-occur. */
+  --critical: #d1495b;
+  --warn: #c8873f;
+  --ok: #5c9e7a;
+  --modeled: #7a6bb5; /* RESERVED — see RULE 2 */
+  --trace: #4a8fa8; /* RESERVED — see RULE 3 */
+  --focus: #b8933f;
+
+  /* ---- interaction ------------------------------------------------------
+     The affordance colour: selection, links, focus rings, hover. This is
+     chrome, not data — it says "you can act on this", never "this is bad"
+     or "this is inferred". It therefore does NOT count against RULE 4's
+     two-semantic-colour budget, which governs {--critical, --warn, --ok,
+     --focus} only. See RULE 9.
+
+     --interactive-dim is the same hue at 0.35 alpha, for the resting or
+     inactive half of a pair (an unhovered row rule, an unfocused ring). */
+  --interactive: #7d8fa0;
+  --interactive-dim: rgba(125, 143, 160, 0.35);
+
+  /* ---- type -------------------------------------------------------------
+     --fs-label is not just a size: a label is ALWAYS uppercase, always
+     letter-spaced --ls-label, always --text-dim. There is no other kind
+     of label. */
+  --fs-label: 10px;
+  --ls-label: 0.08em;
+  --fs-body: 12.5px;
+  --fs-value: 13px;
+  --fs-hero: 34px;
+
+  --lh-tight: 1.15;
+  --lh-body: 1.45;
+
+  /* ---- spacing ----------------------------------------------------------
+     Five values. Nothing between them, nothing above them.
+
+     These coincide exactly with Tailwind's default numeric scale, so in
+     markup you write the Tailwind step, not an arbitrary value:
+
+       --sp-1  4px   ->  p-1   gap-1   m-1
+       --sp-2  6px   ->  p-1.5 gap-1.5 m-1.5
+       --sp-3  8px   ->  p-2   gap-2   m-2
+       --sp-4  12px  ->  p-3   gap-3   m-3
+       --sp-5  16px  ->  p-4   gap-4   m-4
+
+     The vars below exist for inline styles and calc(). See RULE 7. */
+  --sp-1: 4px;
+  --sp-2: 6px;
+  --sp-3: 8px;
+  --sp-4: 12px;
+  --sp-5: 16px;
+
+  /* ---- geometry ---------------------------------------------------------
+     2px is the ceiling, not a default. Most things are square. */
+  --radius-max: 2px;
+  --row-h: 23px;
+
+  /* ---- fixed chrome bands ----------------------------------------------- */
+  --h-statusbar: 28px;
+  --h-ticker: 22px;
+  --w-navrail: 48px;
+}
+
+/* ============================================================================
+   TAILWIND THEME
+   Mirrors the tokens above into Tailwind's namespaces so screens use semantic
+   class names (bg-panel, text-dim, border-rule, text-label) instead of raw
+   hex or arbitrary bracket values.
+
+   `inline` matters: utilities emit `var(--critical)` directly rather than
+   another layer of indirection, so a token can be overridden on a subtree.
+   ============================================================================ */
+
+@theme inline {
+  /* surfaces -> bg-base / bg-panel / bg-elevated */
+  --color-base: var(--bg-base);
+  --color-panel: var(--bg-panel);
+  --color-elevated: var(--bg-elevated);
+
+  /* rules -> border-rule / border-rule-strong */
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+
+  /* text -> text-primary / text-secondary / text-dim */
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-dim: var(--text-dim);
+
+  /* semantic -> text-critical / border-warn / bg-ok ... */
+  --color-critical: var(--critical);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
+  --color-modeled: var(--modeled);
+  --color-trace: var(--trace);
+  --color-focus: var(--focus);
+
+  /* interaction -> text-interactive / border-interactive / ring-interactive
+     / outline-interactive / bg-interactive-dim ... */
+  --color-interactive: var(--interactive);
+  --color-interactive-dim: var(--interactive-dim);
+
+  /* type -> text-label / text-body / text-value / text-hero
+     `text-label` carries size + leading only. The full label treatment
+     (uppercase + --ls-label + --text-dim) is the `.label` class in
+     globals.css — a label is all three things or it is not a label. */
+  --text-label: var(--fs-label);
+  --text-label--line-height: var(--lh-tight);
+  --text-body: var(--fs-body);
+  --text-body--line-height: var(--lh-body);
+  --text-value: var(--fs-value);
+  --text-value--line-height: var(--lh-tight);
+  --text-hero: var(--fs-hero);
+  --text-hero--line-height: var(--lh-tight);
+
+  /* leading-tight / leading-body */
+  --leading-tight: var(--lh-tight);
+  --leading-body: var(--lh-body);
+
+  /* rounded-max — literal, not var(--radius-max): the theme key and the
+     :root token share a name, so a var() here would be self-referential. */
+  --radius-max: 2px;
+
+  /* h-row / min-h-row — the one non-numeric spacing step */
+  --spacing-row: var(--row-h);
+
+  /* one family, everywhere */
+  --font-mono: "Ioskeley Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "Ioskeley Mono", "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* ============================================================================
+   RULES — these are load-bearing, not style advice.
+
+   1. THREE TEXT COLOURS EXIST.
+      --text-primary, --text-secondary, --text-dim. There is no fourth.
+      If something needs to recede further, it should not be on screen.
+      If something needs to stand out more, it is semantic — use RULE 4.
+
+   2. --modeled IS RESERVED.
+      It means inferred / derived / not directly observed. It marks the
+      3 modeled rows and nothing else. Never use it as "the purple one".
+
+   3. --trace IS RESERVED.
+      It means the contamination trace on the GRAPH screen. Not selection,
+      not links, not info, not "the blue one".
+      For selection, links, focus, and hover, use --interactive (RULE 9).
+
+   4. TWO SEMANTIC COLOURS PER PANEL, MAXIMUM.
+      A panel may show at most two of {--critical, --warn, --ok, --focus}
+      at once. Five accents at equal weight is why the old build read as
+      generated. If a panel needs three, it is two panels.
+
+   5. NO GLOW.
+      No box-shadow. No text-shadow. No gradient. No backdrop-filter.
+      The only exceptions are the command palette and modals, which are
+      genuinely floating above the plane and need to say so.
+
+   6. --radius-max IS A CEILING.
+      2px. Nothing rounder. Default to square.
+
+   7. SPACING IS THE FIVE STEPS ABOVE.
+      Use the Tailwind steps listed in the spacing block (p-1, p-1.5, p-2,
+      p-3, p-4). No arbitrary bracket values — no p-[7px], no gap-[10px],
+      no text-[11px]. If the layout wants a sixth value, report it rather
+      than inventing it.
+
+   8. PADDING IS NOT UNIFORM.
+      Dense data regions take --sp-2/--sp-3. Headers and framing take
+      --sp-4/--sp-5. A screen where every region has identical padding
+      reads as a template.
+
+   9. --interactive IS FOR INTERACTION.
+      - --interactive is for selection, links, focus rings, and hover.
+        --trace is ONLY the graph contamination path and appears nowhere
+        else. An agent reaching for cyan on an interactive element wants
+        --interactive.
+
+      This exists because RULE 3 said what --trace is NOT for without
+      saying what to use instead, and the gap got filled with the legacy
+      --cyan: a selected command-palette row, an article source link. Both
+      are interaction, neither is a contamination trace. --interactive is
+      the answer to that question.
+
+      It is not a semantic colour. It does not count toward RULE 4.
+   ============================================================================ */
