@@ -1,26 +1,336 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* ============================================================
+   GALLIUM — typeface
+
+   Ioskeley Mono (github.com/ahatem/IoskeleyMono), self-hosted.
+   The only family in the app: there is no sans stack, no display
+   face, no second voice. font-display: block — the instrument
+   panel is dense numeric data, and reflowing it from a fallback
+   metric mid-record looks worse than a brief hold.
+   ============================================================ */
+
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("/fonts/IoskeleyMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("/fonts/IoskeleyMono-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("/fonts/IoskeleyMono-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Ioskeley Mono";
+  src: url("/fonts/IoskeleyMono-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+
+/* ============================================================
+   LEGACY TOKENS — being retired.
+
+   The four screens (RADAR / EXPOSURE / GRAPH / RESOLVE) still
+   reference these names. They stay defined so those screens keep
+   rendering; each wave that rebuilds a screen migrates it onto
+   styles/tokens.css and deletes what it stopped using.
+
+   Do NOT add to this block. Do NOT reach for these names in new
+   code. styles/tokens.css is the contract.
+
+   Already migrated: --bg-base / --bg-panel / --bg-elevated now
+   come from tokens.css, so every screen inherits the lifted,
+   non-black surfaces without being touched.
+   ============================================================ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --border: #1e222c;
+  --border-hot: #2a303d;
+
+  --text-hi: #e8eaf0;
+  --text-mid: #8b93a7;
+  /* Raised from #545c70 (3.0:1 on --bg-base) to #6b7488 (4.3:1): the 9px badge
+     and 10px labels must stay legible at 1080p, including after a downscale. */
+  --text-lo: #6b7488;
+
+  --amber: #ffb020;
+  --red: #ff4757;
+  --orange: #ff8c42;
+  --green: #2ed573;
+  --cyan: #00d9ff;
+  --violet: #a78bfa;
+
+  /* Solid graticule/grid stroke color for the radar graph. Consumed as
+     var(--grid-line, var(--text-hi)) at a low strokeOpacity (~0.03), so this
+     stays a SOLID (non-alpha) color — the same hi grid tone as --text-hi. */
+  --grid-line: #e8eaf0;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-border: var(--border);
+  --color-border-hot: var(--border-hot);
+
+  --color-hi: var(--text-hi);
+  --color-mid: var(--text-mid);
+  --color-lo: var(--text-lo);
+
+  --color-amber: var(--amber);
+  --color-red: var(--red);
+  --color-orange: var(--orange);
+  --color-green: var(--green);
+  --color-cyan: var(--cyan);
+  --color-violet: var(--violet);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ---- base ------------------------------------------------- */
+
+html,
+body {
+  height: 100%;
+}
+
+:root {
+  /* every figure in the app is a column that has to line up */
+  font-variant-numeric: tabular-nums;
+}
+
+html {
+  background: var(--bg-base);
+  color-scheme: dark;
+  /* Literal stack rather than var(--font-mono): this must resolve before
+     Tailwind's theme layer does, and there is only ever one family. */
+  font-family: "Ioskeley Mono", "IBM Plex Mono", ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--bg-base);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  /* the app is a fixed instrument panel: no page-level scroll */
+  overflow: hidden;
+}
+
+/* The label treatment, indivisible: a label is 10px, uppercase, tracked
+   --ls-label, and --text-dim. Never one of those without the others.
+   See styles/tokens.css RULE 1.
+
+   Lives in @layer components so a utility can still override the colour on
+   the rare label that is also a state (LIVE) — utilities layer after
+   components, so `text-ok` wins without needing !important. */
+@layer components {
+  .label {
+    font-size: var(--fs-label);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+}
+
+::selection {
+  background: color-mix(in srgb, var(--focus) 30%, transparent);
+  color: var(--text-primary);
+}
+
+/* thin, unobtrusive scrollbars — panels scroll internally */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--rule-strong);
+  border-radius: 0;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+/* The `.substrate` dot-grid texture was removed: it was a radial-gradient
+   fill, and tokens.css RULE 5 admits no gradient outside modals and the
+   command palette. The panel surface is now flat --bg-panel. */
+
+/* ---- keyframes -------------------------------------------- */
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes cursor-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes scanline-sweep {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes row-flash {
+  0% {
+    background-color: var(--bg-elevated);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes focal-pulse {
+  0%,
+  100% {
+    border-left-color: var(--focus);
+    background-color: color-mix(in srgb, var(--focus) 5%, transparent);
+  }
+  50% {
+    border-left-color: color-mix(in srgb, var(--focus) 45%, transparent);
+    background-color: color-mix(in srgb, var(--focus) 9%, transparent);
+  }
+}
+
+@keyframes ring-expand {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* shipping-lane packets flow toward Rockford (DESIGN/DATA §6).
+   Composited via CSS motion-path (transform), so the large static arc
+   lines never repaint — keeps the map smooth at 60fps. */
+@keyframes packet-flow {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+/* exposed lanes stutter and stall */
+@keyframes packet-stall {
+  0% {
+    offset-distance: 0%;
+    opacity: 1;
+  }
+  44% {
+    offset-distance: 52%;
+    opacity: 1;
+  }
+  58% {
+    offset-distance: 54%;
+    opacity: 0.5;
+  }
+  72% {
+    offset-distance: 56%;
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+}
+
+/* event feed row insertion (DESIGN §5: 180ms ease-out) */
+@keyframes row-slide-in {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ---- animation utility classes ---------------------------- */
+
+.anim-live {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+.anim-cursor {
+  animation: cursor-blink 1.06s steps(1) infinite;
+}
+.anim-focal {
+  animation: focal-pulse 2.4s ease-in-out infinite;
+}
+
+/* ---- reduced motion floor --------------------------------- */
+/* This build exists to be recorded, so motion is intentional.
+   We still honor the preference by calming purely-ambient loops. */
+@media (prefers-reduced-motion: reduce) {
+  .anim-live,
+  .anim-cursor,
+  .anim-focal {
+    animation: none;
+  }
+}
+
+/* visible keyboard focus (accessibility floor) */
+:focus-visible {
+  outline: 1px solid var(--focus);
+  outline-offset: 1px;
 }

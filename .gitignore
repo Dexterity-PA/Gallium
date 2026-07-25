@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# regenerable artifacts — screenshots and audit reports are outputs, not source.
+# /*.png is root-only on purpose: public/**/*.png stays tracked.
+/*.png
+REVIEW-*.md
+.playwright-mcp/
