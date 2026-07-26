@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { PRIMARY_EVENT } from "@/lib/data/event";
 import { CUSTOMER } from "@/lib/data/customer";
+import { BOM } from "@/lib/data/bom";
 import {
   type ScenarioControlState,
   DEFAULT_SCENARIO_CONTROL,
@@ -36,6 +37,8 @@ const TRIGGER_TIME = PRIMARY_EVENT.timestamp.slice(11, 16); // "14:31"
 const SCENARIO_NAME = `${CUSTOMER.focusProduct.line} × ${EVENT_TYPE}`;
 const ZONE = PRIMARY_EVENT.zone;
 
+const BOM_BY_ID = new Map(BOM.map((b) => [b.id, b]));
+
 function ScenarioField({
   label,
   value,
@@ -55,7 +58,18 @@ function ScenarioField({
   );
 }
 
-export function ImpactSummary({ active }: { active: boolean }) {
+export function ImpactSummary({
+  active,
+  isolatedPart,
+  onSelectPart,
+}: {
+  active: boolean;
+  // The BOM line id currently isolated on the map, or null. Passed straight
+  // through from the page: this panel is where the isolation is TRIGGERED
+  // (a part row click), the map is where it is SHOWN.
+  isolatedPart?: string | null;
+  onSelectPart?: (bomId: string) => void;
+}) {
   // Scenario control state. Default value is a sentinel meaning "no
   // override": lib/derive/impact.ts short-circuits it back to the scripted
   // baseline (today's Kaohsiung IMPACT). Any other value runs the live BFS
@@ -148,11 +162,26 @@ export function ImpactSummary({ active }: { active: boolean }) {
       />
       <Metric label="Tier-2 Catches" value={Math.round(catches)} tone="var(--focus)" />
 
-      {/* segmented bar: 31 segments, exposed count cascades red at 40ms intervals */}
+      {/* segmented bar: 31 segments, exposed count cascades red at 40ms intervals.
+          Each exposed segment is a real BOM line (impact.exposedLineIds, so
+          this tracks the live scenario, not just the scripted baseline):
+          click one to isolate its supply path on the map; click it again, or
+          the status line above the bar once isolated, to clear. */}
       <div className="mt-1 shrink-0">
-        <div className="mb-1 flex items-center justify-between label">
-          <span>EXPOSURE MAP</span>
-          <span className="tabular-nums">
+        <div className="mb-1 flex items-center justify-between">
+          {isolatedPart ? (
+            <button
+              type="button"
+              className="label truncate text-dim transition-colors hover:text-interactive"
+              onClick={() => onSelectPart?.(isolatedPart)}
+              title="CLICK TO CLEAR"
+            >
+              ISOLATED: {BOM_BY_ID.get(isolatedPart)?.mpn ?? isolatedPart} · CLEAR
+            </button>
+          ) : (
+            <span className="label">EXPOSURE MAP</span>
+          )}
+          <span className="label shrink-0 tabular-nums">
             {Math.round(exposed)}/{impact.bomLinesTotal}
           </span>
         </div>
@@ -160,15 +189,23 @@ export function ImpactSummary({ active }: { active: boolean }) {
           {Array.from({ length: impact.bomLinesTotal }).map((_, i) => {
             const isExposed = i < impact.bomLinesExposed;
             const on = active && isExposed;
+            const bomId = i < impact.exposedLineIds.length ? impact.exposedLineIds[i] : null;
+            const bomLine = bomId ? BOM_BY_ID.get(bomId) : undefined;
+            const isIsolated = !!bomId && isolatedPart === bomId;
+            const clickable = on && !!bomId && !!onSelectPart;
             return (
               <div
                 key={i}
                 className="h-4 flex-1"
+                title={bomLine ? `${bomLine.mpn} · CLICK TO ISOLATE ON MAP` : undefined}
+                onClick={clickable ? () => onSelectPart!(bomId!) : undefined}
                 style={{
                   background: on ? "var(--critical)" : "var(--bg-elevated)",
-                  border: "1px solid " + (on ? "var(--critical)" : "var(--rule)"),
+                  border:
+                    "1px solid " + (isIsolated ? "var(--text-primary)" : on ? "var(--critical)" : "var(--rule)"),
                   transition: "background-color 200ms ease-out, border-color 200ms ease-out",
                   transitionDelay: on ? `${i * 40}ms` : "0ms",
+                  cursor: clickable ? "pointer" : undefined,
                 }}
               />
             );

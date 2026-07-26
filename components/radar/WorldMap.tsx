@@ -58,17 +58,22 @@ for (let i = 1; i < FREIGHT_LANE.length; i++) {
   FREIGHT_LEGS.add(`${FREIGHT_LANE[i]}|${FREIGHT_LANE[i - 1]}`);
 }
 
-// Four tiers, not two, because "exposed" turned out to be 49 lanes and drawing
-// 49 lanes at alarm weight buries the one lane that is actually the news.
+// Three tiers, not four. This used to draw a fourth, procurement: Meridian →
+// an exposed BOM line, fourteen trans-Pacific arcs that all say the same
+// thing ("we buy this here"). A supplier's presence in the network already
+// implies Meridian buys from it, so those fourteen were the least
+// informative lanes on the screen and the parallel fan that made the North
+// Pacific read as a tangle. Demoted here to context weight: nothing is
+// deleted, the edges still draw, they just stop being red.
 //
-//   freight     the quarantined shipment's own route. Bright, dashed, moving.
+//   freight     the quarantined shipment's own route. Bright, dashed, moving
+//               (one leg of it; see the stall note at the marker below).
 //   propagation exposure spreading upstream: part → maker → site. Red, quiet.
-//   procurement Meridian → an exposed BOM line. Fourteen trans-Pacific arcs
-//               that all say the same thing ("we buy this here"), so they are
-//               a red wash rather than fourteen more alarms.
-//   context     the rest of the network. Neutral, and the whole point of the
-//               default view.
-type Tier = "freight" | "propagation" | "procurement" | "context";
+//               After the procurement demotion this is the ONLY thing red
+//               means on this map: the event touched this node.
+//   context     everything else, including the former procurement lanes.
+//               Neutral, and the whole point of the default view.
+type Tier = "freight" | "propagation" | "context";
 interface Lane {
   key: string;
   a: PlacedNode;
@@ -82,18 +87,48 @@ const LANES: Lane[] = GRAPH.edges.flatMap((e, i) => {
   const b = NODE_BY_ID.get(e.target);
   if (!a || !b || a.id === b.id) return [];
   const lit = EXPOSED_PATH.has(a.id) && EXPOSED_PATH.has(b.id);
+  const isProcurement = a.id === CUSTOMER_NODE_ID || b.id === CUSTOMER_NODE_ID;
   const tier: Tier = FREIGHT_LEGS.has(`${a.id}|${b.id}`)
     ? "freight"
-    : !lit
+    : !lit || isProcurement
     ? "context"
-    : a.id === CUSTOMER_NODE_ID || b.id === CUSTOMER_NODE_ID
-    ? "procurement"
     : "propagation";
   return [{ key: `${e.source}|${e.target}|${i}`, a, b, tier, modeled: e.provenance === "MODELED" }];
 });
 
 const CONTEXT_LANES = LANES.filter((l) => l.tier === "context");
 const LIT_LANES = LANES.filter((l) => l.tier !== "context");
+
+// A ring-3 site, as opposed to a BOM part, a supplier org, or Meridian
+// itself. Used both to pick a part's own supply-chain sites for the isolate
+// view below and to pick which context lanes are real shipping legs worth
+// animating.
+const isSiteKind = (k?: PlacedNode["kind"]) => k === "FAB" || k === "BACKEND" || k === "LOGISTICS";
+
+// buildGraph() pushes every supplier's REAL site edges (primary / secondary /
+// zone) during the ring-2 pass, near the start of the array, then a later
+// "guarantee connectivity" pass appends a low-signal filler edge to any
+// ring>=2 node whose degree is still under 3 once everything else has been
+// wired up. Three suppliers (the modeled Tier-3 ones, each feeding a single
+// BOM line) sit at exactly that floor and pick up one such filler edge apiece.
+// The zone-linkage block (source === PROPAGATION_ORIGIN_ID) is the first
+// thing pushed after the ring-2 pass, so its index is a reliable boundary:
+// a supplier->site edge before it is real, one after it is filler. This is
+// read off the array, not asserted, so it stays correct if the seed changes.
+const REAL_EDGE_CUTOFF = (() => {
+  const i = GRAPH.edges.findIndex((e) => e.source === PROPAGATION_ORIGIN_ID);
+  return i === -1 ? GRAPH.edges.length : i;
+})();
+
+// A handful of ordinary (non-exposed) supplier/site legs get the same moving
+// packet treatment as the Chicago inbound leg, so the map reads as a live
+// network with one blocked route in it, not one moving dot on an otherwise
+// frozen picture. Deliberately excludes anything touching a BOM or CUSTOMER
+// node: those are commercial relationships, not physical shipments. Capped
+// at three (see the animated-lane total where these are drawn).
+const SHIPPING_CONTEXT_LANES = CONTEXT_LANES.filter(
+  (l) => isSiteKind(l.a.kind) && isSiteKind(l.b.kind)
+).slice(0, 3);
 
 // ---- framing ------------------------------------------------------------
 // Same projection decision as before: ONE scale factor on both axes, so
@@ -199,6 +234,17 @@ const hemi = (deg: number, neg: string, pos: string) =>
 // projection is not actually using. Real-world edges of the derived window,
 // read west to east ACROSS the Pacific (the window excludes only the
 // Atlantic), hence the PACIFIC marker.
+//
+// The two edges, read naively, land close together across the ATLANTIC (the
+// slice this view excludes): Rotterdam and a New Hampshire supplier are only
+// ~76 degrees apart the short way, even though the window itself spans the
+// other ~294 degrees, all the way around through the Pacific. A bare
+// "min–max" pair reads as that short, wrong arc ("0E-66W" looks like a
+// 66-degree sliver of the Atlantic, not a Pacific-spanning window). The
+// trailing degree figure is the window's actual width in the rotated frame,
+// which is the long way by construction, so a reader sees immediately that
+// the two edge numbers are not the whole story.
+const WINDOW_SPAN_DEG = Math.round(LNG_MAX - LNG_MIN);
 export const MAP_WINDOW = {
   lngMin: wrapLng(LNG_MIN + LNG_ROT),
   lngMax: wrapLng(LNG_MAX + LNG_ROT),
@@ -206,7 +252,7 @@ export const MAP_WINDOW = {
     wrapLng(LNG_MAX + LNG_ROT),
     "W",
     "E"
-  )}`,
+  )} · ${WINDOW_SPAN_DEG}°`,
 };
 
 const GRATICULE = geoGraticule().step([20, 20]);
@@ -285,7 +331,28 @@ const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t 
 // A handful of genuine Europe↔America context routes cross the antimeridian
 // seam; the sampler starts a new subpath at the crossing, so those lanes run
 // off the frame's edges instead of wrapping across the pane.
-const GC_STEPS = 24;
+// Sample count scales with the arc's own angular distance rather than a flat
+// 24, which used to render a long arc (the freight lane peaks near the
+// Bering Strait, 171 degrees end to end) as a visible polyline at zoom while
+// spending the same 24 points on a two-degree intra-Taiwan hop that needed
+// three. MIN_GC_STEPS keeps the shortest hops looking like a curve rather
+// than a single straight segment; MAX_GC_STEPS caps the longest (a 180
+// degree arc) so a pan/zoom frame never has to redraw more points than that.
+const MIN_GC_STEPS = 3;
+const MAX_GC_STEPS = 64;
+
+// Central angle between two points on the sphere, in degrees. Sampling
+// density only, not drawn: this is what laneD asks "how far is this arc"
+// before deciding how many points it needs.
+function angularDistanceDeg(aLng: number, aLat: number, bLng: number, bLat: number): number {
+  const aLatR = aLat * DEG;
+  const bLatR = bLat * DEG;
+  const dLngR = (bLng - aLng) * DEG;
+  const cosC =
+    Math.sin(aLatR) * Math.sin(bLatR) + Math.cos(aLatR) * Math.cos(bLatR) * Math.cos(dLngR);
+  return Math.acos(Math.min(1, Math.max(-1, cosC))) / DEG;
+}
+
 type ProjectFn = (lng: number, lat: number) => [number, number];
 function laneD(
   aLng: number,
@@ -294,11 +361,13 @@ function laneD(
   bLat: number,
   projectFn: ProjectFn
 ): string {
+  const angle = angularDistanceDeg(aLng, aLat, bLng, bLat);
+  const steps = Math.max(MIN_GC_STEPS, Math.round((angle / 180) * MAX_GC_STEPS));
   const interp = geoInterpolate([aLng, aLat], [bLng, bLat]);
   const parts: string[] = [];
   let prevRot = 0;
-  for (let i = 0; i <= GC_STEPS; i++) {
-    const [lng, lat] = interp(i / GC_STEPS);
+  for (let i = 0; i <= steps; i++) {
+    const [lng, lat] = interp(i / steps);
     const rot = rotOf(lng);
     const [x, y] = projectFn(lng, lat);
     const pen = i > 0 && Math.abs(rot - prevRot) <= 180 ? "L" : "M";
@@ -316,10 +385,20 @@ function laneD(
 const STROKE: Record<Exclude<Tier, "context">, { w: number; on: number; a: number }> = {
   freight: { w: 1.6, on: 2.1, a: 0.95 },
   propagation: { w: 0.9, on: 1.5, a: 0.5 },
-  procurement: { w: 0.7, on: 1.3, a: 0.2 },
 };
 
-export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
+export function WorldMap({
+  focus,
+  isolate,
+}: {
+  focus?: MapFocusRequest | null;
+  // A BOM line id ("BOM-07"), or null/undefined for no isolation. A third
+  // scope alongside full network and exposed-only (see fullNetwork below):
+  // narrows the map to one part's own supply path and drops everything else
+  // to the quietest tier, without disturbing whichever of the other two
+  // scopes was active before.
+  isolate?: string | null;
+} = {}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [hover, setHover] = useState<PlacedNode | null>(null);
@@ -664,11 +743,57 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
 
   useEffect(() => () => cancelFly(), [cancelFly]);
 
+  // ---- isolate: one part, its own supply path -----------------------------
+  // Derived straight off GRAPH, the same source everything else on this map
+  // reads: the BOM node's own two edges (Meridian → part, part → supplier)
+  // plus that supplier's real site edges (see REAL_EDGE_CUTOFF above). No
+  // stage is invented; a line with only a manufacturer and no site edge
+  // simply isolates to a shorter path.
+  const isolateData = useMemo(() => {
+    if (!isolate) return null;
+    const bomLine = BOM.find((b) => b.id === isolate);
+    const partId = `G-${isolate}`;
+    const partNode = NODE_BY_ID.get(partId) as PlacedNode | undefined;
+    if (!bomLine || !partNode) return null;
+    const customerEdge = GRAPH.edges.find(
+      (e) => e.source === CUSTOMER_NODE_ID && e.target === partId
+    );
+    const supplierEdge = GRAPH.edges.find((e) => e.source === partId);
+    if (!customerEdge || !supplierEdge) return null;
+    const supplierId = supplierEdge.target;
+    const siteEdges = GRAPH.edges.filter(
+      (e, i) =>
+        i < REAL_EDGE_CUTOFF &&
+        e.source === supplierId &&
+        isSiteKind((NODE_BY_ID.get(e.target) as PlacedNode | undefined)?.kind)
+    );
+    const siteNodes = siteEdges
+      .map((e) => NODE_BY_ID.get(e.target) as PlacedNode | undefined)
+      .filter((n): n is PlacedNode => !!n);
+    const edges = [customerEdge, supplierEdge, ...siteEdges];
+    const nodeIds = new Set<string>([
+      CUSTOMER_NODE_ID,
+      partId,
+      supplierId,
+      ...siteNodes.map((n) => n.id),
+    ]);
+    const edgeKeys = new Set(edges.map((e) => `${e.source}|${e.target}`));
+    // A modeled line is still a path and must draw: violet, not skipped.
+    const color = bomLine.provenance === "MODELED" ? "var(--modeled)" : "var(--critical)";
+    return { bomLine, partNode, supplierId, siteNodes, edges, nodeIds, edgeKeys, color };
+  }, [isolate]);
+
   // ---- what is currently drawn ------------------------------------------
-  const visibleNodes = useMemo(
-    () => (fullNetwork ? NODES : NODES.filter((n) => EXPOSED_PATH.has(n.id))),
-    [fullNetwork]
-  );
+  const visibleNodes = useMemo(() => {
+    if (fullNetwork) return NODES;
+    // Exposed-only still has to carry whatever the isolated part's own path
+    // touches (e.g. a manufacturing site with no exposure of its own, like
+    // Dallas), or narrowing the scope while isolating would strand the very
+    // markers the isolate view is trying to show.
+    const keep = new Set(EXPOSED_PATH);
+    if (isolateData) for (const id of isolateData.nodeIds) keep.add(id);
+    return NODES.filter((n) => keep.has(n.id));
+  }, [fullNetwork, isolateData]);
 
   const selectNode = useCallback((n: PlacedNode) => {
     setSelected((cur) => (cur?.id === n.id ? null : n));
@@ -729,6 +854,17 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
       onClick={onBackgroundClick}
       style={{ cursor: drag.current?.moved ? "grabbing" : "grab", touchAction: "none" }}
     >
+      {/* Local to this component so the map does not have to edit the shared
+          keyframe sheet. The quarantined freight leg travels to the port and
+          then holds there for most of the cycle before looping, so a paused
+          frame reads as a queue at the dock, not a shipment in transit. */}
+      <style>{`
+        @keyframes radar-packet-dock {
+          0% { offset-distance: 0%; }
+          30% { offset-distance: 100%; }
+          100% { offset-distance: 100%; }
+        }
+      `}</style>
       {ready ? (
         <svg width={w} height={h} className="absolute inset-0">
           <rect x={0} y={0} width={w} height={h} fill="var(--bg-base)" />
@@ -776,14 +912,14 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
                 <path
                   d={contextD.observed}
                   stroke="var(--text-dim)"
-                  strokeOpacity={0.4}
+                  strokeOpacity={isolateData ? 0.18 : 0.4}
                   strokeWidth={0.6}
                   vectorEffect="non-scaling-stroke"
                 />
                 <path
                   d={contextD.modeled}
                   stroke="var(--modeled)"
-                  strokeOpacity={0.36}
+                  strokeOpacity={isolateData ? 0.16 : 0.36}
                   strokeWidth={0.6}
                   vectorEffect="non-scaling-stroke"
                 />
@@ -792,10 +928,30 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
           </g>
 
           {/* Lit lanes, in screen space so their weight is independent of zoom.
-              Everything red is on this layer and nothing else is. */}
+              Everything red is on this layer and nothing else is. During
+              isolate, only the isolated part's own edges (drawn on their own
+              layer just below) stay red; everything else here drops to the
+              quietest tier alongside the context mesh, and stops moving. */}
           {LIT_LANES.map((l) => {
             const d = laneD(l.a.lng, l.a.lat, l.b.lng, l.b.lat, project);
             const isFreight = l.tier === "freight";
+            const isStallLeg =
+              (l.a.id === "NODE-KHH-ASE" && l.b.id === "NODE-PORT-KHH") ||
+              (l.a.id === "NODE-PORT-KHH" && l.b.id === "NODE-KHH-ASE");
+            if (isolateData) {
+              if (isolateData.edgeKeys.has(`${l.a.id}|${l.b.id}`)) return null; // drawn by the isolate layer instead
+              return (
+                <path
+                  key={l.key}
+                  d={d}
+                  fill="none"
+                  stroke={l.modeled ? "var(--modeled)" : "var(--text-dim)"}
+                  strokeOpacity={0.15}
+                  strokeWidth={0.6}
+                  pointerEvents="none"
+                />
+              );
+            }
             const on = selected?.id === l.a.id || selected?.id === l.b.id;
             const s = STROKE[l.tier as Exclude<Tier, "context">];
             return (
@@ -821,7 +977,13 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
                   strokeDasharray={isFreight ? "3 4" : undefined}
                   pointerEvents="none"
                 />
-                {isFreight ? (
+                {/* The ocean route is quarantined; nothing has moved past the
+                    port. Only this one leg carries a marker, and it travels to
+                    the port and settles there rather than completing the
+                    crossing, so a paused frame reads as a blocked shipment,
+                    not a working one. The legs past the port stay drawn (the
+                    intended route is still the story) but carry no motion. */}
+                {isFreight && isStallLeg ? (
                   <circle
                     r={2}
                     fill="var(--critical)"
@@ -829,7 +991,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
                     style={{
                       offsetPath: `path("${d}")`,
                       offsetRotate: "0deg",
-                      animation: "packet-stall 3s ease-in-out infinite",
+                      animation: "radar-packet-dock 4s ease-out infinite",
                     }}
                   />
                 ) : null}
@@ -837,11 +999,35 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
             );
           })}
 
+          {/* The isolated part's own path: Meridian → part → supplier →
+              site(s), drawn on top of everything else. Modeled lines isolate
+              in violet, observed in red; a modeled path is still a path. */}
+          {isolateData
+            ? isolateData.edges.map((e) => {
+                const a = NODE_BY_ID.get(e.source) as PlacedNode;
+                const b = NODE_BY_ID.get(e.target) as PlacedNode;
+                const d = laneD(a.lng, a.lat, b.lng, b.lat, project);
+                return (
+                  <path
+                    key={`iso-edge-${e.source}|${e.target}`}
+                    d={d}
+                    fill="none"
+                    stroke={isolateData.color}
+                    strokeWidth={1.6}
+                    strokeOpacity={0.95}
+                    pointerEvents="none"
+                  />
+                );
+              })
+            : null}
+
           {/* Final inland leg: Chicago inbound → Rockford assembly. Drawn, not
               stored: Meridian connects to BOM lines rather than to logistics
               nodes in the graph, and inventing that edge would move the node and
               edge counts GRAPH reports. Neutral tone, because the disruption is
-              upstream of here. */}
+              upstream of here. Ordinary operations, so it keeps moving even
+              during isolate, just quieter, alongside the rest of the context
+              tier. */}
           {(() => {
             const d = laneD(chicago.lng, chicago.lat, rockford.lng, rockford.lat, project);
             return (
@@ -851,7 +1037,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
                   fill="none"
                   stroke="var(--text-dim)"
                   strokeWidth={0.9}
-                  strokeOpacity={0.5}
+                  strokeOpacity={isolateData ? 0.25 : 0.5}
                   strokeDasharray="3 4"
                   pointerEvents="none"
                 />
@@ -869,11 +1055,47 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
             );
           })()}
 
+          {/* A few ordinary shipping legs, animated the same way, so the map
+              reads as a live network with one blocked route in it rather than
+              one moving dot on an otherwise frozen picture. Neutral tone:
+              context, not incident. Quieter (and un-staggered motion aside,
+              otherwise unchanged) during isolate, same as everything else on
+              this layer. */}
+          {SHIPPING_CONTEXT_LANES.map((l, i) => {
+            const d = laneD(l.a.lng, l.a.lat, l.b.lng, l.b.lat, project);
+            return (
+              <g key={`ship-${l.key}`} pointerEvents="none">
+                <path
+                  d={d}
+                  fill="none"
+                  stroke="var(--text-dim)"
+                  strokeWidth={0.7}
+                  strokeOpacity={isolateData ? 0.15 : 0.35}
+                  strokeDasharray="2 4"
+                />
+                <circle
+                  r={1.4}
+                  fill="var(--text-dim)"
+                  style={{
+                    offsetPath: `path("${d}")`,
+                    offsetRotate: "0deg",
+                    animation: `packet-flow ${1.8 + i * 0.4}s linear infinite`,
+                    animationDelay: `${i * 0.6}s`,
+                  }}
+                />
+              </g>
+            );
+          })}
+
           {/* Nodes. Constant screen size at every zoom: a dot's size means what
               it is, never how far in you have scrolled. */}
           {visibleNodes.map((n) => {
             const [x, y] = project(n.lng, n.lat);
-            const lit = EXPOSED_PATH.has(n.id);
+            // During isolate, "lit" means "on this part's own path", not "on
+            // the exposed path": everything the default view would light up
+            // that isn't part of THIS part's story drops to the same quiet
+            // dot as the rest of the network.
+            const lit = isolateData ? isolateData.nodeIds.has(n.id) : EXPOSED_PATH.has(n.id);
             const isCustomer = n.id === CUSTOMER_NODE_ID;
             const isOrigin = n.id === PROPAGATION_ORIGIN_ID;
             const isSel = selected?.id === n.id;
@@ -889,7 +1111,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
                   cy={y}
                   r={isSel ? 3 : 1.6}
                   fill={n.provenance === "MODELED" ? "var(--modeled)" : "var(--text-dim)"}
-                  fillOpacity={isSel ? 1 : 0.95}
+                  fillOpacity={isSel ? 1 : isolateData ? 0.4 : 0.95}
                   stroke={isSel ? "var(--text-primary)" : undefined}
                   strokeWidth={isSel ? 1 : undefined}
                   onMouseEnter={() => setHover(n)}
@@ -907,7 +1129,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
             // suppliers: fourteen part markers at full size would out-shout the
             // handful of places that actually stopped.
             const r = n.ring === 1 ? 2 : 3;
-            const color = isCustomer ? "var(--warn)" : "var(--critical)";
+            const color = isCustomer ? "var(--warn)" : isolateData ? isolateData.color : "var(--critical)";
             return (
               <g key={n.id}>
                 {/* Origin node: ONE thin ring, no glow, no stacked second
@@ -992,6 +1214,48 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
               </g>
             );
           })}
+
+          {/* Isolate labels: the part itself always renders (per the brief,
+              "the part name renders on the map"), plus any of its sites NOT
+              already named above. Kaohsiung and Rockford are almost always
+              already covered by NAMED; this fills in the rest (Dallas, etc). */}
+          {isolateData
+            ? (() => {
+                const iso = isolateData;
+                const namedIds = new Set<string>(NAMED.map((m) => m.id));
+                const entries: Array<{ id: string; text: string }> = [
+                  { id: iso.partNode.id, text: iso.bomLine.mpn },
+                  ...iso.siteNodes
+                    .filter((s) => !namedIds.has(s.id))
+                    .map((s) => ({ id: s.id, text: s.label })),
+                ];
+                return entries.map(({ id, text }) => {
+                  const n = NODE_BY_ID.get(id) as PlacedNode;
+                  const [x, y] = project(n.lng, n.lat);
+                  const flip = x > w - 150;
+                  const up = y > h - 26;
+                  const tx = flip ? x - 10 : x + 10;
+                  const ty = up ? y - 14 : y + 4;
+                  return (
+                    <g
+                      key={`iso-label-${id}`}
+                      pointerEvents="none"
+                      textAnchor={flip ? "end" : "start"}
+                      style={{
+                        paintOrder: "stroke",
+                        stroke: "var(--bg-base)",
+                        strokeWidth: 3,
+                        strokeLinejoin: "round",
+                      }}
+                    >
+                      <text x={tx} y={ty} fill={iso.color} className="text-label">
+                        {text}
+                      </text>
+                    </g>
+                  );
+                });
+              })()
+            : null}
 
           {/* Cursor lat/long: 8px ticks at the four pane edges. Edge marks
               locate the cursor on both axes without drawing a line across the

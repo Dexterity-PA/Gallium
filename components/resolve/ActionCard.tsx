@@ -8,6 +8,8 @@ import {
   ERP_BLIND_ALTERNATE_NOTE,
   type Alternate,
 } from "@/components/exposure/derive";
+import { CUSTOMER } from "@/lib/data/customer";
+import { PathDiagram, type PathTone } from "@/components/resolve/PathDiagram";
 
 interface RankedAlternate extends Alternate {
   forLine: string; // MPN of the covered line this candidate would replace
@@ -24,6 +26,62 @@ function rankedAlternates(lines: BomLine[]): RankedAlternate[] {
     .sort(
       (a, b) => b.recoveredLines - a.recoveredLines || a.leadTimeWeeks - b.leadTimeWeeks
     );
+}
+
+// ---- per-action path diagrams -----------------------------------------
+// Not the 25-node GRAPH screen: just the segment of it the action touches,
+// built from data that already exists (BomLine.supplyPath, the Alternate
+// verdict/collidingNode derived from GRAPH_ADJACENCY in
+// components/exposure/derive.ts). BUY_AHEAD and LICENSE change a quantity or
+// a filing, not a route, so neither gets one: see ActionCard's report to the
+// orchestrator for that call.
+
+// The zone-side node(s) a set of covered lines actually ships out of, read
+// off each line's own supplyPath (the last, in-zone hop), not invented. AIR
+// FREIGHT covers lines exiting from two different zone sites (Kaohsiung
+// backend, Taipei distribution); both are named rather than picking one.
+function zoneOriginLabel(lines: BomLine[]): string {
+  const sites = new Set<string>();
+  for (const l of lines) {
+    const last = l.supplyPath?.[l.supplyPath.length - 1];
+    if (last?.inQuarantineZone) sites.add(last.site.replace(/,\s*TW$/, ""));
+  }
+  if (sites.size === 0) return "KAOHSIUNG, TW";
+  return `${Array.from(sites).join(" + ").toUpperCase()}, TW`;
+}
+
+// AIR FREIGHT REROUTE: same two endpoints before and after, only the leg
+// between them changes, sea to air. State-driven off `actioned`, exactly the
+// transition the card's own CTA performs.
+function expediteDiagram(covered: BomLine[], actioned: boolean) {
+  const tone: PathTone = actioned ? "focus" : "critical";
+  return {
+    nodes: [
+      { label: zoneOriginLabel(covered), tone: "critical" as PathTone },
+      { label: CUSTOMER.shortName, tone: "neutral" as PathTone },
+    ],
+    segmentTones: [tone],
+    segmentNotes: [actioned ? "AIR · 4D" : "SEA · 31D"],
+  };
+}
+
+// QUALIFIED ALTERNATE: the outcome of one candidate, in two node-hops. The
+// candidate is neutral (an identity, not yet a verdict); the destination
+// carries the verdict, --focus clear or --critical named-collision, read
+// straight off Alternate.verdict / collidingNode.
+function candidateOutcomeDiagram(alt: RankedAlternate) {
+  const escaped = alt.verdict === "TRUE_ESCAPE";
+  const tone: PathTone = escaped ? "focus" : "critical";
+  return {
+    nodes: [
+      { label: alt.mpn, tone: "neutral" as PathTone },
+      {
+        label: escaped ? "CLEAR OF ZONE" : (alt.collidingNode ?? "BLOCKED"),
+        tone,
+      },
+    ],
+    segmentTones: [tone],
+  };
 }
 
 // Full-width action row. Not a card: no box, no surface of its own. Rows are
@@ -82,6 +140,22 @@ export function ActionCard({
   const [open, setOpen] = useState(false);
   const covered = linesFor(action.id);
   const alternates = action.kind === "SUBSTITUTE" ? rankedAlternates(covered) : [];
+
+  // The demo-pinned pair (components/exposure/derive.ts): ISO5852SDW-A8
+  // truly escapes, -B2 looks like a fix but still assembles at Kaohsiung.
+  // Found by real verdict, not by hardcoding candidate MPNs here.
+  const escapePair =
+    action.kind === "SUBSTITUTE"
+      ? (() => {
+          const centerpiece = covered.find((l) => l.id === "BOM-07");
+          if (!centerpiece) return null;
+          const candidates = alternates.filter((a) => a.forLine === centerpiece.mpn);
+          const escape = candidates.find((a) => a.verdict === "TRUE_ESCAPE");
+          const collision = candidates.find((a) => a.verdict !== "TRUE_ESCAPE");
+          if (!escape || !collision) return null;
+          return { line: centerpiece, escape, collision };
+        })()
+      : null;
 
   return (
     <section
@@ -154,6 +228,57 @@ export function ActionCard({
             ))}
           </div>
 
+          {/* path diagram: what the action does to the lines it covers.
+              State-driven off `actioned`, not decorative: the sea leg is
+              literally replaced by the air leg the moment this fires. */}
+          {action.kind === "EXPEDITE" ? (
+            <div className="border-b border-rule px-2 py-1.5">
+              <PathDiagram {...expediteDiagram(covered, actioned)} size="md" />
+            </div>
+          ) : null}
+
+          {/* the sharpest insight in the product: two qualified candidates
+              for the same part, one clears the zone, one silently doesn't.
+              Unmistakable side by side, colliding node named. */}
+          {escapePair ? (
+            <div className="border-b border-rule px-2 py-1.5">
+              <div className="mb-1.5 text-label text-dim">
+                {escapePair.line.mpn} · two qualified candidates
+              </div>
+              <div className="grid grid-cols-2 gap-3" style={{ minWidth: 0 }}>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-label" style={{ color: "var(--focus)" }}>
+                    ESCAPES
+                  </span>
+                  <PathDiagram
+                    nodes={[
+                      { label: escapePair.escape.mpn, tone: "neutral" },
+                      { label: "CLEAR OF ZONE", tone: "focus" },
+                    ]}
+                    segmentTones={["focus"]}
+                    size="md"
+                  />
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-label" style={{ color: "var(--critical)" }}>
+                    STILL BLOCKED
+                  </span>
+                  <PathDiagram
+                    nodes={[
+                      { label: escapePair.collision.mpn, tone: "neutral" },
+                      {
+                        label: escapePair.collision.collidingNode ?? "BLOCKED",
+                        tone: "critical",
+                      },
+                    ]}
+                    segmentTones={["critical"]}
+                    size="md"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {/* which exposed lines this action actually clears */}
           <div className="flex items-baseline gap-3 px-2 py-1.5">
             <span className="shrink-0 label">
@@ -193,21 +318,12 @@ export function ActionCard({
               {alternates.map((alt) => (
                 <div
                   key={`${alt.forLine}-${alt.mpn}`}
-                  className="flex items-baseline justify-between gap-2 border-b border-rule py-1 text-label"
+                  className="flex items-center gap-2 border-b border-rule py-1 text-label"
                 >
-                  <span className="min-w-0 truncate">
-                    <span
-                      style={{ color: alt.verdict === "TRUE_ESCAPE" ? "var(--focus)" : "var(--critical)" }}
-                    >
-                      {alt.verdict === "TRUE_ESCAPE" ? "✓" : "✕"}
-                    </span>{" "}
-                    <span className="text-secondary">{alt.forLine}</span>
-                    <span className="text-dim"> → </span>
-                    <span className="text-primary">{alt.mpn}</span>
-                    {alt.collidingNode ? (
-                      <span className="text-dim"> · via {alt.collidingNode}</span>
-                    ) : null}
-                  </span>
+                  <span className="shrink-0 text-secondary">{alt.forLine}</span>
+                  <div className="min-w-0 flex-1">
+                    <PathDiagram {...candidateOutcomeDiagram(alt)} />
+                  </div>
                   <span
                     className="tabular-nums shrink-0"
                     style={{ color: alt.recoveredLines > 0 ? "var(--focus)" : "var(--text-dim)" }}

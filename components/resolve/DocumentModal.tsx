@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Action, BomLine } from "@/lib/types";
 import { OBSERVED_EXPOSED } from "@/lib/data/actions";
@@ -8,6 +8,9 @@ import { linesFor, money } from "@/components/resolve/rollup";
 import { OWNERSHIP_THRESHOLD_NOTE } from "@/lib/data/bom";
 import { CUSTOMER } from "@/lib/data/customer";
 import { SourcePanel } from "@/components/shared/SourcePanel";
+import { DOC_TITLE, DOC_INTRO, DOC_META, ISSUE_DATE, ISSUER } from "@/lib/documents/content";
+import { deriveLineItems, deriveAffiliateRows, affiliateSourceIds, dollars } from "@/lib/documents/derive";
+import { downloadDocumentPdf } from "@/lib/documents/download";
 
 // ------------------------------------------------------------------
 // The four RESOLVE documents. Each renders as real paperwork off the
@@ -21,115 +24,16 @@ import { SourcePanel } from "@/components/shared/SourcePanel";
 // unitCost, leadTimeWeeks) or action.metrics, nothing invented. Issue
 // date is the fixed 2026-07-22. Signatories are ROLE placeholders only.
 // The PREVIEW · REPRESENTATIVE marker stays.
+//
+// DOC_TITLE / DOC_INTRO / DOC_META / ISSUE_DATE / ISSUER now live in
+// lib/documents/content.ts, and the line-item / affiliates arithmetic
+// lives in lib/documents/derive.ts, so the on-screen preview below and
+// the downloadable PDF (lib/documents/pdf.ts) read the exact same
+// derivation instead of each authoring their own copy.
 // ------------------------------------------------------------------
-
-const DOC_TITLE: Record<Action["kind"], string> = {
-  EXPEDITE: "AIR FREIGHT AUTHORIZATION",
-  SUBSTITUTE: "COMPONENT QUALIFICATION PACKET",
-  BUY_AHEAD: "PURCHASE REQUISITION",
-  LICENSE: "EXPORT LICENSE DETERMINATION",
-};
-
-const DOC_INTRO: Record<Action["kind"], string> = {
-  EXPEDITE:
-    "Authorize expedited air movement of finished-goods inventory from Kaohsiung backend to Rockford assembly, bypassing quarantined ocean freight.",
-  SUBSTITUTE:
-    "Initiate qualification of a form-fit-function alternate with backend assembly outside the quarantine zone.",
-  BUY_AHEAD:
-    "Requisition forward inventory coverage on affected categories ahead of forecast lead-time extension.",
-  LICENSE:
-    "Compile the Red Flag 29 affiliates-screening diligence and export-license determination for the two suppliers crossing the 50% ownership threshold, ahead of the screening obligation that attaches 2026-11-10.",
-};
-
-type Term = { k: string; v: string };
-
-type DocMeta = {
-  refPrefix: string;
-  issuingDept: string;
-  lineHeading: string;
-  terms: Term[];
-  signatories: string[];
-  reviewLine: string;
-};
-
-const DOC_META: Record<Action["kind"], DocMeta> = {
-  EXPEDITE: {
-    refPrefix: "MDS-AFA",
-    issuingDept: "LOGISTICS / TRAFFIC",
-    lineHeading: "AIR MANIFEST · COVERED LINES",
-    terms: [
-      { k: "INCOTERMS", v: "CIP · ROCKFORD, IL" },
-      { k: "MODE / ROUTING", v: "AIR · KHH → ORD" },
-      { k: "ORIGIN", v: "KAOHSIUNG BACKEND (A&T)" },
-      { k: "DESTINATION", v: "ROCKFORD ASSEMBLY" },
-      { k: "CARGO", v: "FINISHED GOODS" },
-      { k: "INSURANCE", v: "ALL-RISK · SHIPMENT VALUE" },
-    ],
-    signatories: ["PROCUREMENT LEAD", "LOGISTICS / TRAFFIC", "FINANCE"],
-    reviewLine: "LOGISTICS + FINANCE SIGN-OFF REQUIRED",
-  },
-  SUBSTITUTE: {
-    refPrefix: "MDS-QP",
-    issuingDept: "ENGINEERING / QUALITY",
-    lineHeading: "QUALIFICATION SCOPE · COVERED LINES",
-    terms: [
-      { k: "QUAL STANDARD", v: "IEC 61800-5-1" },
-      { k: "QUAL TYPE", v: "FORM-FIT-FUNCTION ALT" },
-      { k: "TEST SCOPE", v: "ISOLATION · THERMAL · EMC" },
-      { k: "SAMPLE PLAN", v: "3-LOT · FIRST ARTICLE" },
-      { k: "DISPOSITION", v: "PENDING FIRST-ARTICLE" },
-    ],
-    signatories: ["ENGINEERING (QUAL)", "QUALITY", "PROCUREMENT"],
-    reviewLine: "ENGINEERING + QUALITY SIGN-OFF REQUIRED",
-  },
-  BUY_AHEAD: {
-    refPrefix: "MDS-PR",
-    issuingDept: "PROCUREMENT",
-    lineHeading: "REQUISITION LINES",
-    terms: [
-      { k: "PAYMENT TERMS", v: "NET 45" },
-      { k: "DELIVERY", v: "STAGGERED WEEKLY RELEASES" },
-      { k: "BUDGET", v: "Q4 2026 CAPITAL" },
-      { k: "APPROVAL TIER", v: "> $250K · VP OPS" },
-      { k: "BASIS", v: "FORECAST LEAD-TIME EXTENSION" },
-    ],
-    signatories: ["PROCUREMENT LEAD", "FINANCE / TREASURY", "OPERATIONS"],
-    reviewLine: "PROCUREMENT + TREASURY SIGN-OFF REQUIRED",
-  },
-  LICENSE: {
-    refPrefix: "MDS-XL",
-    issuingDept: "TRADE COMPLIANCE / LEGAL",
-    lineHeading: "AFFILIATES SCREENING · FLAGGED SUPPLIERS",
-    terms: [
-      { k: "DILIGENCE BASIS", v: "RED FLAG 29 · AFFILIATES" },
-      { k: "SCREENING THRESHOLD", v: "50% AFFILIATES" },
-      { k: "OBLIGATION ATTACHES", v: "2026-11-10" },
-      { k: "FILING WINDOW", v: "BY 2026-10-15" },
-      { k: "DETERMINATION", v: "PENDING · PROC + LEGAL" },
-    ],
-    signatories: ["TRADE COMPLIANCE", "LEGAL COUNSEL", "PROCUREMENT"],
-    reviewLine: "TRADE COMPLIANCE + LEGAL SIGN-OFF REQUIRED",
-  },
-};
-
-const ISSUE_DATE = "2026-07-22";
-const ISSUER = CUSTOMER.name.toUpperCase();
 
 const TABLE_COLS = "16ch minmax(0,1fr) 3ch 4ch 6ch 7ch";
 const TABLE_GAP = "8px";
-
-/** $x.xx below $1,000 (cents permitted), comma/no-cents at or above. */
-function dollars(n: number): string {
-  return n >= 1000 ? money(n) : `$${n.toFixed(2)}`;
-}
-
-/** Pull a numeric out of a metric's display value, e.g. "4,200" → 4200. */
-function metricNumber(action: Action, label: string): number | null {
-  const m = action.metrics.find((x) => x.label === label);
-  if (!m) return null;
-  const n = Number(m.value.replace(/[^0-9.]/g, ""));
-  return Number.isFinite(n) && n > 0 ? n : null;
-}
 
 function SectionLabel({ children, corner }: { children: string; corner?: string }) {
   return (
@@ -189,8 +93,7 @@ function Field({
 
 /* ---- cost-document line-item table (EXPEDITE / SUBSTITUTE / BUY_AHEAD) ---- */
 function LineItemTable({ action, lines }: { action: Action; lines: BomLine[] }) {
-  const subtotal = lines.reduce((s, l) => s + l.qtyPerUnit * l.unitCost, 0);
-  const units = metricNumber(action, "UNITS"); // present on EXPEDITE only
+  const { rows, subtotal, units, extendedTotal } = deriveLineItems(action, lines);
 
   return (
     <div>
@@ -207,54 +110,51 @@ function LineItemTable({ action, lines }: { action: Action; lines: BomLine[] }) 
         <span className="text-right">EXT $</span>
       </div>
 
-      {lines.map((l) => {
-        const ext = l.qtyPerUnit * l.unitCost;
-        return (
-          <div
-            key={l.id}
-            className="grid items-center border-b border-rule text-body"
-            style={{ gridTemplateColumns: TABLE_COLS, columnGap: TABLE_GAP, height: "24px" }}
+      {rows.map((r) => (
+        <div
+          key={r.id}
+          className="grid items-center border-b border-rule text-body"
+          style={{ gridTemplateColumns: TABLE_COLS, columnGap: TABLE_GAP, height: "24px" }}
+        >
+          <span
+            className="overflow-hidden text-ellipsis whitespace-nowrap text-primary"
+            title={r.id}
           >
-            <span
-              className="overflow-hidden text-ellipsis whitespace-nowrap text-primary"
-              title={l.id}
-            >
-              {l.mpn}
-            </span>
-            <span
-              className="overflow-hidden text-ellipsis whitespace-nowrap text-secondary"
-              title={`${l.description} · ${l.manufacturer}`}
-            >
-              {l.description}
-            </span>
-            <span className="text-right tabular-nums text-secondary">{l.qtyPerUnit}</span>
-            <span className="text-right tabular-nums text-secondary">
-              {l.leadTimeWeeks}W
-            </span>
-            <span className="text-right tabular-nums text-secondary">
-              ${l.unitCost.toFixed(2)}
-            </span>
-            <span className="text-right tabular-nums text-primary">${ext.toFixed(2)}</span>
-          </div>
-        );
-      })}
+            {r.mpn}
+          </span>
+          <span
+            className="overflow-hidden text-ellipsis whitespace-nowrap text-secondary"
+            title={`${r.description} · ${r.manufacturer}`}
+          >
+            {r.description}
+          </span>
+          <span className="text-right tabular-nums text-secondary">{r.qtyPerUnit}</span>
+          <span className="text-right tabular-nums text-secondary">
+            {r.leadTimeWeeks}W
+          </span>
+          <span className="text-right tabular-nums text-secondary">
+            ${r.unitCost.toFixed(2)}
+          </span>
+          <span className="text-right tabular-nums text-primary">${r.ext.toFixed(2)}</span>
+        </div>
+      ))}
 
       {/* subtotal: per finished MD-7200 unit */}
       <div className="flex items-center justify-between border-t border-rule-strong py-1">
         <span className="label">
-          PER-UNIT BOM VALUE · {lines.length} LINES
+          PER-UNIT BOM VALUE · {rows.length} LINES
         </span>
         <span className="tabular-nums text-body text-primary">{dollars(subtotal)}</span>
       </div>
 
       {/* extended shipment value, EXPEDITE only, scaled by its own UNITS metric */}
-      {units ? (
+      {units && extendedTotal ? (
         <div className="flex items-center justify-between border-t border-rule py-1">
           <span className="label">
             EXTENDED · {units.toLocaleString("en-US")} UNITS
           </span>
           <span className="tabular-nums text-body text-focus">
-            {money(subtotal * units)}
+            {money(extendedTotal)}
           </span>
         </div>
       ) : null}
@@ -270,6 +170,8 @@ function AffiliatesTable({
   lines: BomLine[];
   onOpenSources: (ids: string[]) => void;
 }) {
+  const rows = deriveAffiliateRows(lines);
+
   return (
     <div>
       <p className="mb-2 text-label leading-relaxed text-dim">
@@ -277,51 +179,44 @@ function AffiliatesTable({
       </p>
 
       <div className="flex flex-col gap-2">
-        {lines.map((l) => {
-          const c = l.ownershipChain;
-          if (!c) return null;
-          return (
-            <div key={l.id} className="border border-rule">
-              {/* supplier line header */}
-              <div className="flex items-baseline justify-between gap-3 border-b border-rule-strong bg-panel px-2 py-1">
-                <span className="overflow-hidden text-ellipsis whitespace-nowrap text-body text-primary">
-                  {l.mpn} · {l.description}
-                </span>
-                <span className="shrink-0 text-label tabular-nums text-dim">
-                  {l.id}
-                </span>
-              </div>
-
-              <div className="px-2">
-                <Field k="SUPPLIER OF RECORD" v={c.supplierOfRecord} tag="OBSERVED" />
-                <Field
-                  k={`INTERMEDIATE PARENT · ${c.parentPct}%`}
-                  v={c.parentEntity}
-                  tag="OBSERVED"
-                />
-                <Field
-                  k={`ULTIMATE PARENT · CONF ${c.ultimateParentConf}%`}
-                  v={c.ultimateParent}
-                  accent="modeled"
-                  tag="MODELED"
-                />
-                <Field
-                  k="AFFILIATES THRESHOLD"
-                  v={c.thresholdCrossed ? "⚑ 50% CROSSED" : "BELOW 50%"}
-                  accent={c.thresholdCrossed ? "critical" : undefined}
-                />
-              </div>
+        {rows.map((r) => (
+          <div key={r.id} className="border border-rule">
+            {/* supplier line header */}
+            <div className="flex items-baseline justify-between gap-3 border-b border-rule-strong bg-panel px-2 py-1">
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-body text-primary">
+                {r.mpn} · {r.description}
+              </span>
+              <span className="shrink-0 text-label tabular-nums text-dim">
+                {r.id}
+              </span>
             </div>
-          );
-        })}
+
+            <div className="px-2">
+              <Field k="SUPPLIER OF RECORD" v={r.supplierOfRecord} tag="OBSERVED" />
+              <Field
+                k={`INTERMEDIATE PARENT · ${r.parentPct}%`}
+                v={r.parentEntity}
+                tag="OBSERVED"
+              />
+              <Field
+                k={`ULTIMATE PARENT · CONF ${r.ultimateParentConf}%`}
+                v={r.ultimateParent}
+                accent="modeled"
+                tag="MODELED"
+              />
+              <Field
+                k="AFFILIATES THRESHOLD"
+                v={r.thresholdCrossed ? "⚑ 50% CROSSED" : "BELOW 50%"}
+                accent={r.thresholdCrossed ? "critical" : undefined}
+              />
+            </div>
+          </div>
+        ))}
       </div>
 
       <button
         type="button"
-        onClick={() => {
-          const ids = [...new Set(lines.flatMap((l) => l.ownershipChain?.sourceIds ?? []))];
-          onOpenSources(ids);
-        }}
+        onClick={() => onOpenSources(affiliateSourceIds(rows))}
         className="mt-2 block text-left text-label leading-relaxed text-dim underline decoration-dotted underline-offset-2 transition-colors hover:text-focus"
       >
         SOURCES · {OWNERSHIP_THRESHOLD_NOTE.sources}. Ultimate-parent attribution is{" "}
@@ -352,10 +247,23 @@ export function DocumentModal({
   // so a stale panel never reopens on a new selection.
   const [sourcesOpen, setSourcesOpen] = useState<string[] | null>(null);
   const [sourcesOpenFor, setSourcesOpenFor] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
   if ((action?.id ?? null) !== sourcesOpenFor) {
     setSourcesOpenFor(action?.id ?? null);
     setSourcesOpen(null);
+    setGenerating(false);
   }
+
+  // Real vector PDF export (lib/documents/pdf.ts), built off the same
+  // derivation this modal renders. Runs client-side, no headless browser.
+  const handleDownload = useCallback(async (a: Action) => {
+    setGenerating(true);
+    try {
+      await downloadDocumentPdf(a);
+    } finally {
+      setGenerating(false);
+    }
+  }, []);
 
   return (
     <AnimatePresence>
@@ -491,12 +399,22 @@ export function DocumentModal({
                   </div>
                 </div>
 
-                {/* footer: fixed */}
+                {/* footer: fixed. The PDF export lives here, not the header,
+                    since this is the row that used to just claim "READY" --
+                    now it is the thing that makes the document real. */}
                 <div className="flex shrink-0 items-center justify-between border-t border-rule px-2 py-1.5">
                   <span className="text-label text-dim">
                     GENERATED BY GALLIUM · {meta.reviewLine}
                   </span>
-                  <span className="text-label text-secondary">● READY</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(action)}
+                    disabled={generating}
+                    className="label flex h-row items-center gap-1.5 px-2 text-focus transition-colors disabled:opacity-50"
+                    style={{ border: "1px solid var(--focus)" }}
+                  >
+                    {generating ? "GENERATING PDF..." : "DOWNLOAD PDF"}
+                  </button>
                 </div>
               </motion.div>
             </motion.div>

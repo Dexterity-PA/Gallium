@@ -17,12 +17,17 @@ export function useCountUp(
 ): number {
   const [value, setValue] = useState<number>(enabled ? from : target);
   const fromRef = useRef<number>(enabled ? from : target);
+  // Mirrors `value` without waiting on the state update. Cleanup reads this,
+  // not `target`, so a run that never rendered a frame does not fool the
+  // next run into thinking it already arrived (see cleanup comment below).
+  const valueRef = useRef<number>(enabled ? from : target);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!enabled) {
       setValue(target);
       fromRef.current = target;
+      valueRef.current = target;
       return;
     }
     const start = performance.now();
@@ -33,6 +38,7 @@ export function useCountUp(
     const step = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
       const v = startValue + delta * easeOut(t);
+      valueRef.current = v;
       setValue(v);
       if (t < 1) {
         rafRef.current = requestAnimationFrame(step);
@@ -43,7 +49,13 @@ export function useCountUp(
     rafRef.current = requestAnimationFrame(step);
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      fromRef.current = target;
+      // Commit where the animation actually landed, not the target it was
+      // headed for. Committing `target` unconditionally broke the very next
+      // run whenever cleanup fired before a single frame had painted (e.g.
+      // React StrictMode's dev-only mount/cleanup/remount): the remount saw
+      // startValue already equal to target, took the delta===0 bail above,
+      // and the value stayed frozen at its initial `from` forever.
+      fromRef.current = valueRef.current;
     };
   }, [target, duration, enabled]);
 

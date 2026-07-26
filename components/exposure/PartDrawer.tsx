@@ -277,8 +277,20 @@ export function PartDrawer({
           transition={{ duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
           className="absolute inset-y-0 right-0 z-40 flex w-[420px] max-w-[92%] flex-col border-l border-rule-strong bg-panel"
         >
-          {/* header */}
-          <div className="flex h-row shrink-0 items-center justify-between border-b border-rule px-2">
+          {/* header. This drawer's right edge sits flush on the window (it is
+              absolutely positioned inset-y-0 right-0 inside a full-bleed
+              <main>, same as every right-most Panel), so at plain px-2 the
+              close glyph and every value column below sat 8px off the glass
+              instead of the --safe-inset 24px used everywhere else that
+              happens (see components/ui/Panel.tsx). Only paddingRight is
+              overridden, same technique Panel.tsx uses: the class still
+              carries the rest of the padding, the inline style replaces just
+              that one property, so the drawer owns its own inset instead of
+              borrowing viewport clearance. */}
+          <div
+            className="flex h-row shrink-0 items-center justify-between border-b border-rule px-2"
+            style={{ paddingRight: "var(--safe-inset)" }}
+          >
             <span className="text-value uppercase text-primary">
               {line.mpn} · Supply Path
             </span>
@@ -292,7 +304,10 @@ export function PartDrawer({
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto p-2">
+          <div
+            className="min-h-0 flex-1 overflow-auto p-2"
+            style={{ paddingRight: "var(--safe-inset)" }}
+          >
             <div className="mb-2 text-body text-secondary">
               {line.description}
             </div>

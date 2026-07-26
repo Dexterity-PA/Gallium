@@ -36,6 +36,10 @@ export default function RadarPage() {
   const [arrived, setArrived] = useState(0);
   const [flashKey, setFlashKey] = useState<string | null>(null);
   const [focus, setFocus] = useState<MapFocusRequest | null>(null);
+  // BOM line id currently isolated on the map ("BOM-07"), or null. Lives here
+  // because it flows from the Impact panel (where a part row is clicked) to
+  // the map (where the path is drawn); clicking the same row again clears it.
+  const [isolatedPart, setIsolatedPart] = useState<string | null>(null);
 
   // Scripted arrivals at 3.2s / 5.6s / 8.0s (DATA.md §2). Deterministic offsets.
   useEffect(() => {
@@ -91,7 +95,7 @@ export default function RadarPage() {
         noPad
         bodyClassName="overflow-hidden"
       >
-        <WorldMap focus={focus} />
+        <WorldMap focus={focus} isolate={isolatedPart} />
       </Panel>
 
       <Panel
@@ -101,7 +105,11 @@ export default function RadarPage() {
         noPad
         bodyClassName="overflow-auto"
       >
-        <ImpactSummary active={impactActive} />
+        <ImpactSummary
+          active={impactActive}
+          isolatedPart={isolatedPart}
+          onSelectPart={(bomId) => setIsolatedPart((cur) => (cur === bomId ? null : bomId))}
+        />
       </Panel>
     </div>
   );
