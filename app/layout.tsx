@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/chrome/AppShell";
 import { DemoStateProvider } from "@/lib/hooks/useDemoState";
+import { ScenarioProvider } from "@/lib/hooks/useScenario";
 
 export const metadata: Metadata = {
   title: "GALLIUM · Chip Supply Chain Shock Platform",
@@ -35,7 +36,9 @@ export default function RootLayout({
       </head>
       <body className="h-full">
         <DemoStateProvider>
-          <AppShell>{children}</AppShell>
+          <ScenarioProvider>
+            <AppShell>{children}</AppShell>
+          </ScenarioProvider>
         </DemoStateProvider>
       </body>
     </html>

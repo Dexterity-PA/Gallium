@@ -1,7 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import { BOM } from "@/lib/data/bom";
 import type { BomLine } from "@/lib/types";
+import { useScenario } from "@/lib/hooks/useScenario";
+import { affectedRadius, scenarioStatus } from "@/lib/derive/scenario";
 
 // ---------------------------------------------------------------------------
 // Derived view model. This is a rollup of BOM lines that are already in
@@ -38,10 +41,20 @@ export interface PressureRow {
   modeled: boolean;
 }
 
-export const PRESSURE: PressureRow[] = (() => {
+export interface PressureView {
+  rows: PressureRow[];
+  maxWeeks: number;
+  totalLines: number;
+  worst: PressureRow | null;
+  longest: PressureRow | null;
+}
+
+/** Pressure rollup for a set of exposed lines. The scenario control decides
+ *  the set; the categories and figures are the same authored lead-time data
+ *  either way. At the default control this is exactly the scripted rollup. */
+export function pressureFor(exposed: BomLine[]): PressureView {
   const groups = new Map<string, BomLine[]>();
-  for (const line of BOM) {
-    if (line.status !== "EXPOSED") continue;
+  for (const line of exposed) {
     const key = categoryOf(line);
     const bucket = groups.get(key);
     if (bucket) bucket.push(line);
@@ -67,19 +80,36 @@ export const PRESSURE: PressureRow[] = (() => {
   });
 
   rows.sort((a, b) => b.delta - a.delta || b.now - a.now);
-  return rows;
-})();
+  return {
+    rows,
+    maxWeeks: rows.length ? Math.max(...rows.map((r) => Math.max(r.now, r.was))) : 0,
+    totalLines: rows.reduce((n, r) => n + r.lines, 0),
+    worst: rows.length ? rows.reduce((a, b) => (b.delta > a.delta ? b : a)) : null,
+    longest: rows.length ? rows.reduce((a, b) => (b.now > a.now ? b : a)) : null,
+  };
+}
 
-const MAX_WEEKS = Math.max(...PRESSURE.map((r) => Math.max(r.now, r.was)));
-const TOTAL_LINES = PRESSURE.reduce((n, r) => n + r.lines, 0);
-const WORST = PRESSURE.reduce((a, b) => (b.delta > a.delta ? b : a));
-const LONGEST = PRESSURE.reduce((a, b) => (b.now > a.now ? b : a));
+/** The scripted baseline, kept for guards: pressureFor over the authored
+ *  EXPOSED set. */
+export const PRESSURE: PressureRow[] = pressureFor(
+  BOM.filter((l) => l.status === "EXPOSED")
+).rows;
 
 const fmt = (n: number) => `${n}W`;
 
 // ---------------------------------------------------------------------------
 
-function Row({ row, index, active }: { row: PressureRow; index: number; active: boolean }) {
+function Row({
+  row,
+  index,
+  active,
+  maxWeeks,
+}: {
+  row: PressureRow;
+  index: number;
+  active: boolean;
+  maxWeeks: number;
+}) {
   const rising = row.delta >= 0;
   // --modeled stays reserved for inferred data; observed movement is
   // --critical when rising and drops to plain --text-secondary when falling:
@@ -88,8 +118,8 @@ function Row({ row, index, active }: { row: PressureRow; index: number; active: 
   const valueTone = row.modeled ? "var(--modeled)" : "var(--text-primary)";
   const labelTone = row.modeled ? "var(--modeled)" : "var(--text-dim)";
 
-  const basePct = (Math.min(row.now, row.was) / MAX_WEEKS) * 100;
-  const movePct = (Math.abs(row.delta) / MAX_WEEKS) * 100;
+  const basePct = maxWeeks > 0 ? (Math.min(row.now, row.was) / maxWeeks) * 100 : 0;
+  const movePct = maxWeeks > 0 ? (Math.abs(row.delta) / maxWeeks) * 100 : 0;
   const delay = `${index * 40}ms`;
   const ease = "width 240ms cubic-bezier(0.4, 0, 0.2, 1)";
 
@@ -145,6 +175,27 @@ function Row({ row, index, active }: { row: PressureRow; index: number; active: 
 }
 
 export function LeadTimePressure({ active }: { active: boolean }) {
+  const { control } = useScenario();
+  const view = useMemo(() => {
+    const radius = affectedRadius(control.originId, control.severity);
+    return pressureFor(BOM.filter((l) => scenarioStatus(l, radius) === "EXPOSED"));
+  }, [control]);
+  const { rows, maxWeeks, totalLines, worst, longest } = view;
+
+  if (rows.length === 0 || !worst || !longest) {
+    return (
+      <div className="shrink-0">
+        <div className="flex items-baseline justify-between">
+          <span className="label">Lead Time Pressure</span>
+          <span className="text-label tabular-nums text-dim">0 CAT / 0 LN</span>
+        </div>
+        <div className="mt-1 border-y border-rule-strong py-1.5 text-label leading-body text-dim">
+          NO EXPOSED LINES UNDER THIS SCENARIO. QUOTED LEAD TIMES UNAFFECTED.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="shrink-0">
       <div className="flex items-baseline justify-between">
@@ -152,7 +203,7 @@ export function LeadTimePressure({ active }: { active: boolean }) {
           Lead Time Pressure
         </span>
         <span className="text-label tabular-nums text-dim">
-          {PRESSURE.length} CAT / {TOTAL_LINES} LN
+          {rows.length} CAT / {totalLines} LN
         </span>
       </div>
 
@@ -164,10 +215,10 @@ export function LeadTimePressure({ active }: { active: boolean }) {
           </div>
           <div
             className="text-value tabular-nums"
-            style={{ color: LONGEST.modeled ? "var(--modeled)" : "var(--text-primary)" }}
+            style={{ color: longest.modeled ? "var(--modeled)" : "var(--text-primary)" }}
           >
-            {fmt(LONGEST.now)}
-            <span className="ml-1 text-label text-dim">{LONGEST.driver.mpn}</span>
+            {fmt(longest.now)}
+            <span className="ml-1 text-label text-dim">{longest.driver.mpn}</span>
           </div>
         </div>
         <div>
@@ -175,20 +226,20 @@ export function LeadTimePressure({ active }: { active: boolean }) {
             Largest Move
           </div>
           <div className="text-value tabular-nums" style={{ color: "var(--critical)" }}>
-            ▲ {fmt(WORST.delta)}
-            <span className="ml-1 text-label text-dim">{WORST.driver.mpn}</span>
+            ▲ {fmt(worst.delta)}
+            <span className="ml-1 text-label text-dim">{worst.driver.mpn}</span>
           </div>
         </div>
       </div>
 
       <div>
-        {PRESSURE.map((row, i) => (
-          <Row key={row.category} row={row} index={i} active={active} />
+        {rows.map((row, i) => (
+          <Row key={row.category} row={row} index={i} active={active} maxWeeks={maxWeeks} />
         ))}
       </div>
 
       <div className="mt-2 text-label leading-body text-dim">
-        BARS SCALE TO {MAX_WEEKS}W. FILLED SEGMENT IS WEEKS ADDED SINCE PRIOR QUOTE.
+        BARS SCALE TO {maxWeeks}W. FILLED SEGMENT IS WEEKS ADDED SINCE PRIOR QUOTE.
         <br />
         ROW FIGURE IS THE LONGEST-POLE PART IN THE CATEGORY.
       </div>

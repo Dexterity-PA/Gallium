@@ -1,14 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { PRIMARY_EVENT } from "@/lib/data/event";
 import { CUSTOMER } from "@/lib/data/customer";
 import { BOM } from "@/lib/data/bom";
-import {
-  type ScenarioControlState,
-  DEFAULT_SCENARIO_CONTROL,
-  isDefaultScenarioControl,
-} from "@/lib/data/scenario";
+import { useScenario } from "@/lib/hooks/useScenario";
 import {
   deriveScenarioImpact,
   BASELINE_LEAD_TIME_WEEKS,
@@ -70,13 +66,13 @@ export function ImpactSummary({
   isolatedPart?: string | null;
   onSelectPart?: (bomId: string) => void;
 }) {
-  // Scenario control state. Default value is a sentinel meaning "no
-  // override": lib/derive/impact.ts short-circuits it back to the scripted
-  // baseline (today's Kaohsiung IMPACT). Any other value runs the live BFS
-  // over GRAPH_ADJACENCY from the chosen origin. See lib/data/scenario.ts.
-  const [control, setControl] = useState<ScenarioControlState>(DEFAULT_SCENARIO_CONTROL);
+  // Scenario control state is app-level (lib/hooks/useScenario.tsx): the
+  // same control drives RESOLVE, GRAPH and PORTFOLIO, so this panel is the
+  // cockpit, not the whole instrument. The model (lib/derive/scenario.ts)
+  // runs for every value including the default, and the default is guarded
+  // to reproduce the scripted Kaohsiung figures exactly.
+  const { control, setControl, isDefault: isBaseline } = useScenario();
   const impact = useMemo(() => deriveScenarioImpact(control), [control]);
-  const isBaseline = isDefaultScenarioControl(control);
 
   const exposed = useCountUp(active ? impact.bomLinesExposed : 0, { duration: 300, enabled: true });
   const risk = useCountUp(active ? impact.buildAtRisk / 1_000_000 : 0, { duration: 300, enabled: true });
@@ -155,8 +151,15 @@ export function ImpactSummary({
         value={Math.round(days)}
         tone="var(--critical)"
         sub={
+          // The full causal chain, each term named: buffer, structural
+          // lead-time erosion (bottleneck line), and, when the scenario's
+          // hold runs past what the buffer absorbs, the excess hold. At the
+          // default scenario the excess is zero and this renders the exact
+          // derivation line that ships today.
           halt.bottleneck
-            ? `${BUFFER_WEEKS * 7}D buffer − ${halt.erosionDays}D (${halt.bottleneck.mpn} ${halt.bottleneckLeadTimeWeeks}W, ${halt.overrunWeeks}W over ${BASELINE_LEAD_TIME_WEEKS}W baseline)`
+            ? halt.excessHoldDays > 0
+              ? `${halt.lineStops ? "LINE STOPS · " : ""}${BUFFER_WEEKS * 7}D buffer − ${halt.erosionDays}D (${halt.bottleneck.mpn} ${halt.bottleneckLeadTimeWeeks}W) − ${halt.excessHoldDays}D hold (${halt.holdDays}D vs ${halt.absorbableHoldDays}D absorbed)`
+              : `${BUFFER_WEEKS * 7}D buffer − ${halt.erosionDays}D (${halt.bottleneck.mpn} ${halt.bottleneckLeadTimeWeeks}W, ${halt.overrunWeeks}W over ${BASELINE_LEAD_TIME_WEEKS}W baseline)`
             : "no exposed lines, full buffer"
         }
       />

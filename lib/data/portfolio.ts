@@ -1,7 +1,16 @@
 import { CUSTOMER } from "@/lib/data/customer";
 import { PRODUCTS, type Product } from "@/lib/data/products";
-import { productExposure } from "@/lib/derive/exposure";
+import { productExposure, riskFor } from "@/lib/derive/exposure";
 import { baselineImpact, buildAtRiskLabel } from "@/lib/derive/impact";
+import {
+  affectedRadius,
+  scenarioStatus,
+  scenarioHalt,
+} from "@/lib/derive/scenario";
+import {
+  type ScenarioControlState,
+  isDefaultScenarioControl,
+} from "@/lib/data/scenario";
 
 /* ============================================================
    PORTFOLIO - Meridian's product line, one row per product.
@@ -101,6 +110,52 @@ export const PORTFOLIO_QUIET: PortfolioProduct[] = PORTFOLIO.map((row) => {
   const product = PRODUCTS.find((p) => p.code === row.code)!;
   return quietRowFor(product);
 });
+
+/* ---- the scenario view ------------------------------------------------
+   All seven products run through the SAME exposure function the simulate
+   control drives on RADAR: per-line supply-path membership inside the
+   scenario's affected radius (lib/derive/scenario.ts), the same value-at-
+   risk fraction, and the same hold-aware runway. Row order stays pinned to
+   the default ranking so the table never re-sorts under the viewer while
+   they move the control; rows go hot or cold in place.
+
+   At the default control this reproduces PORTFOLIO exactly, and the guard
+   in lib/derive/guards.ts fails the build if it ever stops doing so. */
+export function portfolioFor(control: ScenarioControlState): PortfolioProduct[] {
+  // Same-object return at the default is an identity optimization only:
+  // computePortfolioFor(default) is guarded equal to PORTFOLIO, so this is
+  // never a semantic special case.
+  if (isDefaultScenarioControl(control)) return PORTFOLIO;
+  return computePortfolioFor(control);
+}
+
+/** The un-shortcut computation, exported so lib/derive/guards.ts can prove
+ *  the scenario path reproduces PORTFOLIO at the default control. */
+export function computePortfolioFor(control: ScenarioControlState): PortfolioProduct[] {
+  const radius = affectedRadius(control.originId, control.severity);
+  return PORTFOLIO.map((row) => {
+    const product = PRODUCTS.find((p) => p.code === row.code)!;
+    const exposed = product.lines.filter(
+      (l) => scenarioStatus(l, radius) === "EXPOSED"
+    );
+    const halt = scenarioHalt(exposed, control);
+    return {
+      code: product.code,
+      description: product.description,
+      bomLines: product.lines.length,
+      quarterlyBuildValue: product.quarterlyBuildValue,
+      exposedLines: exposed.length,
+      modeledExposed: exposed.filter((l) => l.provenance === "MODELED").length,
+      revenueAtRisk: riskFor(
+        product.quarterlyBuildValue,
+        exposed.length,
+        product.lines.length
+      ),
+      daysToHalt: halt.daysToHalt,
+      status: exposed.length > 0 ? "EXPOSED" : "MONITORED",
+    };
+  });
+}
 
 const FOCUS = CUSTOMER.focusProduct;
 

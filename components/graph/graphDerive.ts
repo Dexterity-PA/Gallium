@@ -158,13 +158,15 @@ export interface GraphTally {
   observedSharePct: number; // OBSERVED / (OBSERVED + MODELED) * 100
 }
 
-export function graphTally(): GraphTally {
+export function graphTally(status?: ReadonlyMap<string, Status>): GraphTally {
   const nodesByStatus: Record<Status, number> = {
     CLEAR: 0,
     AT_RISK: 0,
     EXPOSED: 0,
   };
-  for (const n of GRAPH.nodes) nodesByStatus[n.status] += 1;
+  // Optional status override: the scenario control recolors the network
+  // (lib/derive/scenario.ts scenarioGraphView) without touching GRAPH itself.
+  for (const n of GRAPH.nodes) nodesByStatus[status?.get(n.id) ?? n.status] += 1;
 
   let observedEdges = 0;
   let modeledEdges = 0;

@@ -1,4 +1,5 @@
 import { GRAPH, GRAPH_ADJACENCY, PROPAGATION_ORIGIN_ID } from "@/lib/data/graph";
+import type { Status } from "@/lib/types";
 
 // The exposure fan (DATA.md §5 / BRIEF Screen 3): every exposed BOM line
 // reachable from the affected backend, and the distinct supplier standing
@@ -70,12 +71,25 @@ function shortestPath(from: string, to: string): string[] | null {
   return null;
 }
 
-function exposedReachable(): Set<string> {
-  const status = new Map(GRAPH.nodes.map((n) => [n.id, n.status]));
-  const isExposed = (id: string) => status.get(id) === "EXPOSED";
+/** Statuses and origin the schedule is built against. Defaults to the
+ *  scripted event (the graph's own baked statuses, Kaohsiung origin); the
+ *  scenario control passes lib/derive/scenario.ts scenarioGraphView output
+ *  so the contamination path is the CURRENT scenario's path. */
+export interface ScheduleScope {
+  originId: string;
+  status: ReadonlyMap<string, Status>;
+}
 
-  const seen = new Set<string>([PROPAGATION_ORIGIN_ID]);
-  let frontier = [PROPAGATION_ORIGIN_ID];
+const SCRIPTED_SCOPE: ScheduleScope = {
+  originId: PROPAGATION_ORIGIN_ID,
+  status: new Map(GRAPH.nodes.map((n) => [n.id, n.status])),
+};
+
+function exposedReachable(scope: ScheduleScope): Set<string> {
+  const isExposed = (id: string) => scope.status.get(id) === "EXPOSED";
+
+  const seen = new Set<string>([scope.originId]);
+  let frontier = [scope.originId];
   while (frontier.length) {
     const next: string[] = [];
     for (const id of frontier) {
@@ -92,12 +106,14 @@ function exposedReachable(): Set<string> {
   return seen;
 }
 
-export function buildContaminationSchedule(): ContaminationSchedule {
+export function buildContaminationSchedule(
+  scope: ScheduleScope = SCRIPTED_SCOPE
+): ContaminationSchedule {
   const nodeById = new Map(GRAPH.nodes.map((n) => [n.id, n]));
-  const reachable = exposedReachable();
+  const reachable = exposedReachable(scope);
 
   const tier1Ids = GRAPH.nodes
-    .filter((n) => n.ring === 1 && n.status === "EXPOSED" && reachable.has(n.id))
+    .filter((n) => n.ring === 1 && scope.status.get(n.id) === "EXPOSED" && reachable.has(n.id))
     .map((n) => n.id)
     .sort();
 
@@ -119,7 +135,7 @@ export function buildContaminationSchedule(): ContaminationSchedule {
   }
   const convergentIds = tier2Ids.filter((id) => (feedCount.get(id) ?? 0) > 1);
 
-  const originLabel = nodeById.get(PROPAGATION_ORIGIN_ID)?.label ?? PROPAGATION_ORIGIN_ID;
+  const originLabel = nodeById.get(scope.originId)?.label ?? scope.originId;
 
   // Direct-vs-collapsed split: real shortest path from origin to each
   // supplier. Most exposed suppliers sit one hop off the origin site; a few
@@ -128,7 +144,7 @@ export function buildContaminationSchedule(): ContaminationSchedule {
   // collapse inspectable instead of asserting a directness the data lacks.
   const hopBySupplier = new Map<string, SupplierHop>();
   for (const supId of tier2Ids) {
-    const path = shortestPath(PROPAGATION_ORIGIN_ID, supId);
+    const path = shortestPath(scope.originId, supId);
     const hops = path ? path.length - 1 : 1;
     const viaIds = path && path.length > 2 ? path.slice(1, -1) : [];
     hopBySupplier.set(supId, { direct: hops <= 1, hops, viaIds });
@@ -138,7 +154,7 @@ export function buildContaminationSchedule(): ContaminationSchedule {
 
   return {
     totalMs: 6000,
-    originId: PROPAGATION_ORIGIN_ID,
+    originId: scope.originId,
     originLabel,
     tier1Ids,
     tier2Ids,

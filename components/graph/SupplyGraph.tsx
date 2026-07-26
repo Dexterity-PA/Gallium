@@ -11,9 +11,8 @@ import {
 import {
   LAYOUT,
   NODE_BY_ID,
-  SCHEDULE,
   SCOPE_LABEL,
-  tallyForScope,
+  type FlowView,
 } from "@/components/graph/flowModel";
 import {
   NodeDetailPanel,
@@ -28,16 +27,18 @@ import type { GraphNode } from "@/lib/types";
 // panel header (app/graph/page.tsx) reads the exact numbers this canvas draws.
 // Nothing size-describing is computed locally any more.
 
-const MAX_WEIGHT = Math.max(1, ...LAYOUT.edges.map((e) => e.weight));
-const FLOW_ADJACENCY: Map<string, Set<string>> = (() => {
+function maxWeightOf(view: FlowView): number {
+  return Math.max(1, ...view.layout.edges.map((e) => e.weight));
+}
+function flowAdjacencyOf(view: FlowView): Map<string, Set<string>> {
   const m = new Map<string, Set<string>>();
-  for (const n of LAYOUT.nodes) m.set(n.id, new Set());
-  for (const e of LAYOUT.edges) {
+  for (const n of view.layout.nodes) m.set(n.id, new Set());
+  for (const e of view.layout.edges) {
     m.get(e.source)?.add(e.target);
     m.get(e.target)?.add(e.source);
   }
   return m;
-})();
+}
 
 // Deterministic background arrangement of the full 90-node network: inert
 // context texture behind the flow when the toggle is on. Not the same LAYOUT
@@ -67,8 +68,8 @@ function endId(x: unknown): string {
   return typeof x === "object" && x !== null ? (x as { id: string }).id : (x as string);
 }
 
-function weightT(w: number): number {
-  return MAX_WEIGHT <= 1 ? 0 : (w - 1) / (MAX_WEIGHT - 1);
+function weightT(w: number, maxWeight: number): number {
+  return maxWeight <= 1 ? 0 : (w - 1) / (maxWeight - 1);
 }
 
 // Edge weight has to actually read: a 3-line edge unmistakably heavier than
@@ -83,11 +84,11 @@ const EDGE_MIN_ALPHA = 0.55;
 const EDGE_MAX_ALPHA = 0.95;
 const EDGE_MIN_WIDTH = 1.3;
 const EDGE_MAX_WIDTH = 4.2;
-function edgeAlpha(weight: number): number {
-  return EDGE_MIN_ALPHA + weightT(weight) * (EDGE_MAX_ALPHA - EDGE_MIN_ALPHA);
+function edgeAlpha(weight: number, maxWeight: number): number {
+  return EDGE_MIN_ALPHA + weightT(weight, maxWeight) * (EDGE_MAX_ALPHA - EDGE_MIN_ALPHA);
 }
-function edgeWidthFor(weight: number): number {
-  return EDGE_MIN_WIDTH + weightT(weight) * (EDGE_MAX_WIDTH - EDGE_MIN_WIDTH);
+function edgeWidthFor(weight: number, maxWeight: number): number {
+  return EDGE_MIN_WIDTH + weightT(weight, maxWeight) * (EDGE_MAX_WIDTH - EDGE_MIN_WIDTH);
 }
 
 // ---- label separation (all SCREEN px, deliberately) ----------------------
@@ -140,7 +141,7 @@ function computeBBox(nodes: FlowNode[]) {
   }
   return { xMin, xMax, yMin, yMax };
 }
-const CONTENT_BBOX = computeBBox(LAYOUT.nodes);
+
 
 // Canvas 2D never resolves var(...), so every color/size used inside ctx calls
 // is read once from computed style at mount and cached here.
@@ -157,12 +158,22 @@ interface Palette {
 }
 
 export function SupplyGraph({
+  view,
   fullNetwork,
   onToggleFullNetwork,
 }: {
+  /** The scenario's flow view (flowModel.ts flowViewFor). The page keys this
+   *  component on view.key, so within one mount the view never changes and
+   *  a scenario change replays the reveal sequence from a clean canvas. */
+  view: FlowView;
   fullNetwork: boolean;
   onToggleFullNetwork: () => void;
 }) {
+  const LAYOUT = view.layout;
+  const SCHEDULE = view.schedule;
+  const MAX_WEIGHT = useMemo(() => maxWeightOf(view), [view]);
+  const FLOW_ADJACENCY = useMemo(() => flowAdjacencyOf(view), [view]);
+  const CONTENT_BBOX = useMemo(() => computeBBox(LAYOUT.nodes), [LAYOUT]);
   const wrapRef = useRef<HTMLDivElement>(null);
   const fgRef = useRef<any>(null);
   const bgCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -202,7 +213,7 @@ export function SupplyGraph({
       nodes: LAYOUT.nodes.map((n) => ({ ...n, fx: n.x, fy: n.y })),
       links: LAYOUT.edges.map((e) => ({ ...e })),
     }),
-    []
+    [LAYOUT]
   );
 
   const dataNodeById = useMemo(() => new Map(data.nodes.map((n) => [n.id, n])), [data]);
@@ -213,12 +224,13 @@ export function SupplyGraph({
     if (typeof window === "undefined") return;
     (window as any).__supplyGraphNodes = data.nodes;
     (window as any).__supplyGraphLayout = LAYOUT;
+    (window as any).__supplyGraphViewKey = view.key;
     // World to screen, asked of the canvas itself rather than reconstructed
     // from the last zoom event: a programmatic fit does not always emit one,
     // so the cached transform can lag what is actually painted.
     (window as any).__supplyGraphToScreen = (x: number, y: number) =>
       fgRef.current?.graph2ScreenCoords?.(x, y) ?? null;
-  }, [data]);
+  }, [data, LAYOUT, view.key]);
 
   const selected = useRef<GraphNode | null>(null);
   const neighborIds = useRef<Set<string>>(new Set());
@@ -356,7 +368,7 @@ export function SupplyGraph({
 
     fg.centerAt?.(focusX, focusY, 0);
     fg.zoom?.(scale, 0);
-  }, [size]);
+  }, [size, CONTENT_BBOX]);
 
   // Fit the fixed layout into whatever the container measures, then reveal on
   // a later frame so the fitted transform is actually painted first (no flash
@@ -615,9 +627,9 @@ export function SupplyGraph({
     const reveal = stageProgress(SCHEDULE.column3AtMs);
     if (reveal <= 0) return "transparent";
     const dim = linkDimmed(l);
-    return hexToRgba(p.trace, reveal * edgeAlpha(l.weight) * (dim ? 0.2 : 1));
+    return hexToRgba(p.trace, reveal * edgeAlpha(l.weight, MAX_WEIGHT) * (dim ? 0.2 : 1));
   };
-  const linkWidth = (l: any): number => edgeWidthFor(l.weight);
+  const linkWidth = (l: any): number => edgeWidthFor(l.weight, MAX_WEIGHT);
 
   // Column-0 (origin to supplier) edges are fully custom-drawn ("replace"):
   // the line itself leaves the band at the supplier's own row (distributed,
@@ -643,9 +655,9 @@ export function SupplyGraph({
     const tx = target.x;
     const ty = target.y;
 
-    ctx.globalAlpha = reveal * edgeAlpha(l.weight) * (dim ? 0.2 : 1);
+    ctx.globalAlpha = reveal * edgeAlpha(l.weight, MAX_WEIGHT) * (dim ? 0.2 : 1);
     ctx.strokeStyle = p.trace;
-    ctx.lineWidth = edgeWidthFor(l.weight) / scale;
+    ctx.lineWidth = edgeWidthFor(l.weight, MAX_WEIGHT) / scale;
     ctx.beginPath();
     ctx.moveTo(sx, sy);
     ctx.lineTo(tx, ty);
@@ -747,7 +759,7 @@ export function SupplyGraph({
       </div>
 
       <GraphStats
-        tally={tallyForScope(fullNetwork)}
+        tally={fullNetwork ? view.fullTally : view.foregroundTally}
         scope={fullNetwork ? SCOPE_LABEL.full : SCOPE_LABEL.foreground}
       />
 
