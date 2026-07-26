@@ -8,14 +8,20 @@ import { CSV_TEMPLATE_HEADER, CSV_TEMPLATE_ROWS } from "@/lib/data/sampleUpload"
 import type { UploadRow } from "@/lib/csv";
 
 interface EntryScreenProps {
-  onUseSample: () => void;
   onUpload: (rows: UploadRow[], fileName: string) => void;
 }
 
 // The opening shot. No BOM loaded yet, so no dashboard chrome exists around
 // this (see AppShell). Composed from the same primitives as every other
 // screen (Panel, Scanline, the token palette), just with room to breathe.
-export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
+//
+// There is no "use sample BOM" button. A one-click path into a pre-loaded
+// dataset is the thing that makes a demo look like a demo: it says the
+// numbers downstream were waiting for you rather than computed from what you
+// handed over. Upload and drag-drop are the only way in, and the sample is a
+// real committed file (public/sample/MD-7200-BOM.csv, written by
+// scripts/build-sample-csv.mjs) that goes through the same parser.
+export function EntryScreen({ onUpload }: EntryScreenProps) {
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -134,20 +140,6 @@ export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
             </div>
           ) : null}
         </Panel>
-
-        <div className="flex w-full items-center gap-3">
-          <div className="h-px flex-1 bg-[var(--rule)]" />
-          <span className="text-[10px] tracking-[0.1em] text-[var(--text-dim)]">OR</span>
-          <div className="h-px flex-1 bg-[var(--rule)]" />
-        </div>
-
-        <button
-          type="button"
-          onClick={onUseSample}
-          className="flex h-[34px] w-full items-center justify-center gap-2 border border-[var(--focus)] text-[11px] uppercase tracking-[0.12em] text-[var(--focus)] transition-colors hover:bg-[var(--focus)] hover:text-[var(--bg-base)]"
-        >
-          Use sample BOM · MD-7200
-        </button>
 
         <button
           type="button"

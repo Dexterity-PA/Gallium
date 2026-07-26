@@ -10,7 +10,6 @@ import { useDemoState } from "@/lib/hooks/useDemoState";
 import { StatusBar } from "@/components/chrome/StatusBar";
 import { NavRail } from "@/components/chrome/NavRail";
 import { Ticker } from "@/components/chrome/Ticker";
-import { ProvenanceBadge } from "@/components/chrome/ProvenanceBadge";
 import { CommandPalette } from "@/components/chrome/CommandPalette";
 
 // The fixed instrument panel (DESIGN.md §4). 100vh, no page scroll; the three
@@ -90,7 +89,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Ticker />
       </div>
 
-      <ProvenanceBadge />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </DemoClockContext.Provider>
   );

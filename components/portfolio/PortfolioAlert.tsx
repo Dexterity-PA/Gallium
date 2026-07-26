@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { PRIMARY_EVENT } from "@/lib/data/event";
-import { riskLabel, type PortfolioProduct } from "@/lib/data/portfolio";
+import {
+  riskLabel,
+  type PortfolioProduct,
+  type PortfolioRollup,
+} from "@/lib/data/portfolio";
 import { BAND_INSET } from "@/components/portfolio/layout";
 
 /* ============================================================
@@ -15,6 +19,13 @@ import { BAND_INSET } from "@/components/portfolio/layout";
    second event competing with the first. Holding the box and swapping
    only its contents keeps it to one change, and keeps the frame readable
    when it is paused.
+
+   WHAT IT SAYS. The portfolio-wide figure, then the product carrying most
+   of it. Every product has a resolved BOM, so the total is a confirmed
+   count of exposed lines and a confirmed slice of the quarter's build,
+   not a supplier-level screen with a caveat attached. The band used to
+   have to hedge in violet about screened products; there is nothing left
+   to hedge about, so it states the number and names the worst hit.
    ============================================================ */
 
 // PRIMARY_EVENT.headline is the authored event name and stays the source of
@@ -24,13 +35,14 @@ const EVENT_NAME = PRIMARY_EVENT.headline.replace(/\s*\u2014\s*/g, " · ");
 
 export function PortfolioAlert({
   live,
-  focus,
-  screenedProducts,
+  totals,
+  worst,
 }: {
   live: boolean;
-  focus: PortfolioProduct;
-  /** Non-ingested products carrying at least one screening hit. Derived. */
-  screenedProducts: number;
+  /** Reduced over the rows the table renders. Never authored. */
+  totals: PortfolioRollup;
+  /** The product carrying the most value at risk. */
+  worst: PortfolioProduct;
 }) {
   if (!live) {
     return (
@@ -43,8 +55,8 @@ export function PortfolioAlert({
             ● PORTFOLIO WATCH
           </div>
           <div className="text-body text-dim">
-            No active incident. Monitoring seven products against the resolved{" "}
-            {focus.code} bill of materials and supplier-level screens.
+            {`No active incident. Monitoring ${totals.products} products against ` +
+              `${totals.bomLines} resolved bill-of-materials lines.`}
           </div>
         </div>
       </div>
@@ -68,21 +80,16 @@ export function PortfolioAlert({
         >
           ▲ {EVENT_NAME}
         </div>
+        {/* One template string, not a run of JSX text nodes. The band is a
+            sentence with eight interpolations in it and JSX whitespace between
+            an expression and the text after it is one edit away from
+            disappearing, which is how "$6.3Mof this quarter" happens. */}
         <div className="truncate text-body text-primary">
-          {focus.code} is exposed: {focus.exposedLines} of {focus.bomLines} lines,{" "}
-          {riskLabel(focus.revenueAtRisk)} of this quarter&rsquo;s build,{" "}
-          {focus.daysToHalt} days to halt.{" "}
-          {/* The screened clause is a claim about inferred data and is
-              coloured as one (tokens.css RULE 2). It replaces a flat "no
-              other product line is affected", which the six supplier
-              screens in the table directly contradict. */}
-          <span style={{ color: "var(--modeled)" }}>
-            {screenedProducts === 0
-              ? "No other product line screens as affected."
-              : `Supplier screens flag ${screenedProducts} more product ` +
-                `${screenedProducts === 1 ? "line" : "lines"}, none confirmed ` +
-                `without a BOM ingest.`}
-          </span>
+          {`${totals.exposedLines} of ${totals.bomLines} lines exposed across ` +
+            `${totals.products} products, ${riskLabel(totals.revenueAtRisk)} of ` +
+            `this quarter\u2019s ${riskLabel(totals.quarterlyBuildValue)} build. ` +
+            `${worst.code} is worst hit: ${worst.exposedLines} of ${worst.bomLines} ` +
+            `lines, ${riskLabel(worst.revenueAtRisk)}, ${worst.daysToHalt} days to halt.`}
         </div>
       </div>
 

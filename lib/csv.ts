@@ -84,13 +84,22 @@ export function extractUploadRows(records: CsvRecord[]): UploadRow[] {
     .filter((r) => r.mpn.length > 0);
 }
 
+// Serializes an arbitrary grid to RFC4180-ish CSV text: the inverse of
+// splitCsvRows above, quoting any cell that carries a comma, a quote or a
+// newline. One serializer, so the two-column template and the wide ERP export
+// (lib/data/sampleUpload.ts) cannot escape their cells differently.
+export function toCsv(header: string[], rows: string[][]): string {
+  const escape = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  const lines = [header.map(escape).join(",")];
+  for (const r of rows) lines.push(r.map(escape).join(","));
+  return lines.join("\n") + "\n";
+}
+
 // Serializes rows to CSV text for the template download, using the exact columns
 // extractUploadRows expects: mpn, description.
 export function buildCsvText(header: string[], rows: UploadRow[]): string {
-  const escape = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-  const lines = [header.join(",")];
-  for (const r of rows) {
-    lines.push([escape(r.mpn), escape(r.description)].join(","));
-  }
-  return lines.join("\n") + "\n";
+  return toCsv(
+    header,
+    rows.map((r) => [r.mpn, r.description])
+  );
 }

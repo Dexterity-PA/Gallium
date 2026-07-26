@@ -1,0 +1,37 @@
+Level,Item Number,Rev,MPN,Description,Manufacturer,Commodity Class,UOM,Qty Per,Ref Des,Country of Origin,Std Cost,Ext Cost,Planning Lead Time (wks),Make/Buy,Buyer,Last PO,Plant,Notes
+1,MDS-646452,A1,BM63577S-VC,"IGBT IPM, 600V 30A, 3-phase power stage",ROHM,POWER MODULE,EA,1,U49,TW,28.4000,28.40,23,BUY,R.HALVERSEN,2026-05-01,ROC-01,
+1,MDS-968833,B1,BM63577S-VD,"IGBT IPM, 600V 30A, 3-phase power stage",ROHM,POWER MODULE,EA,3,,TW,,,,BUY,,,ROC-01,"AVL alternate suffix, never released by vendor"
+1,MDS-884580,A1,SCS310AMC,"SiC Schottky diode, 650V 10A, freewheel path",ROHM,DISCRETE,EA,6,D37-D42,TW,1.6500,9.90,20,BUY,R.HALVERSEN,2026-03-25,ROC-01,
+1,MDS-306961,B1,SCS310AMD,"SiC Schottky diode, 650V 10A, freewheel path",ROHM,DISCRETE,EA,3,,TW,,,,BUY,,,ROC-01,"AVL alternate suffix, never released by vendor"
+1,MDS-816860,A3,TMS320F28027PTT,"C2000 Piccolo MCU, control card",Texas Instruments,MCU,EA,1,U41,TW,3.9000,3.90,27,BUY,A.OKONKWO,2026-01-06,ROC-01,
+1,MDS-486306,C3,XC9536-QFP44,"CPLD, 36 macrocell, legacy interlock logic",Xilinx,COMPONENT,EA,4,,US,,,,BUY,,2019-08-14,ROC-02,"superseded, carried on rev C, not reordered since 2019"
+1,MDS-993330,C1,TLP2361,"High-speed optocoupler, gate isolation",Toshiba,ISOLATION,EA,6,U31-U36,TW,0.9200,5.52,24,BUY,R.HALVERSEN,2026-01-09,ROC-01,
+1,MDS-437694,C3,TLP2361X,"High-speed optocoupler, gate isolation",Toshiba,ISOLATION,EA,4,,TW,,,,BUY,,,ROC-02,"AVL alternate suffix, never released by vendor"
+1,MDS-651772,A1,B32778G4206,"DC-link film capacitor, 20µF 800V",TDK EPCOS,PASSIVE,EA,2,C45-C46,DE,6.2000,12.40,14,BUY,A.OKONKWO,2026-01-23,ROC-01,
+1,MDS-487379,D3,EETUQ2W331DA,"DC-link aluminum electrolytic, 330µF 450V",Panasonic,COMPONENT,EA,4,,JP,3.1000,12.40,16,BUY,T.VESELY,2026-02-03,ROC-02,
+1,MDS-200881,B1,ISO5852SDW,"Isolated IGBT gate driver, reinforced, 5.7kVrms",Texas Instruments,POWER MODULE,EA,6,U6-U11,USA,4.8500,29.10,27,BUY,R.HALVERSEN,2026-06-23,ROC-02,
+1,MDS-919430,C3,GA3459-BL,"Gate-drive supply transformer, isolated",Pulse Electronics,ISOLATION,EA,3,L7-L9,USA,2.1000,6.30,19,BUY,R.HALVERSEN,2026-01-05,ROC-01,
+1,MDS-662471,D3,CAY16-103J4LF,"Isolated resistor array, 10kΩ, gate network",Bourns,ISOLATION,EA,4,R12-R15,USA,0.3800,1.52,14,BUY,R.HALVERSEN,2026-04-03,ROC-02,
+1,MDS-826532,A2,CSS2H-2512R-L500,"Current sense shunt, 5mΩ 3W",Bourns,COMPONENT,EA,3,R5-R7,USA,0.8500,2.55,11,BUY,T.VESELY,2026-03-14,ROC-01,
+1,MDS-981729,B3,SN6501DBVR,Transformer driver for isolated supply,Texas Instruments,ISOLATION,EA,3,L54-L56,USA,0.7500,2.25,19,BUY,R.HALVERSEN,2026-06-08,ROC-02,
+2,MDS-150946,C2,LF-C194-INF,"Leadframe, Cu alloy (module package)",,POWER MODULE,EA,1,,,0.1200,0.12,31,PHANTOM,,,ROC-01,"package material, non-purchased"
+2,MDS-896565,B2,SUB-BT-INF,BT laminate substrate (module package),,POWER MODULE,EA,1,,,0.3000,0.30,32,PHANTOM,,,ROC-02,"package material, non-purchased"
+2,MDS-982707,D1,PKG-MC-INF,Mold compound / bond wire (assembly materials),,PACKAGE MATERIAL,EA,1,,,0.0500,0.05,30,PHANTOM,,,ROC-02,"package material, non-purchased"
+1,MDS-140026,C2,EEUFR1V471,"Bus aluminum electrolytic, 470µF 35V",Panasonic,COMPONENT,EA,2,,JP,2.4000,4.80,15,BUY,T.VESELY,2026-03-17,ROC-01,
+1,MDS-868088,A1,CRCW0603xxx,"Gate resistor network, thick film",Vishay,PASSIVE,EA,12,R45-R56,US,0.0200,0.24,10,BUY,A.OKONKWO,2026-03-02,ROC-01,
+1,MDS-661894,C1,744273801,"Common-mode choke, EMC input filter",Würth Elektronik,PASSIVE,EA,1,L31,DE,3.8000,3.80,15,BUY,A.OKONKWO,2026-05-10,ROC-01,
+1,MDS-386010,C3,9GA0812P4G01,"DC axial cooling fan, 80mm",Sanyo Denki,COMPONENT,EA,1,B39,PH,9.5000,9.50,20,BUY,T.VESELY,2026-03-20,ROC-01,
+1,MDS-437440,A3,ACS770LCB-050B,"Hall-effect current sensor, ±50A",Allegro,COMPONENT,EA,3,U13-U15,PH,2.1500,6.45,12,BUY,T.VESELY,2026-01-22,ROC-01,
+1,MDS-910397,B3,GRM188R71H104K,"MLCC 0.1µF 50V, decoupling",Murata,COMPONENT,EA,40,C42-C81,JP,0.0100,0.40,9,BUY,T.VESELY,2026-02-03,ROC-02,
+1,MDS-553777,B3,RC0402FR-0710K,"Chip resistor 0402, 10kΩ 1%",Yageo,PASSIVE,EA,60,R34-R93,CN,0.0040,0.24,7,BUY,A.OKONKWO,2026-04-03,ROC-02,
+1,MDS-171876,A2,1729131,"Terminal block, 2-pos 630V",Phoenix Contact,INTERCONNECT,EA,6,J21-J26,DE,1.2000,7.20,9,BUY,A.OKONKWO,2026-05-15,ROC-01,
+1,MDS-265488,A3,MD7200-PWR-PCB,"Power board PCB fabrication, 6-layer",Domestic fab,COMPONENT,EA,1,,US,14.0000,14.00,13,BUY,T.VESELY,2026-01-06,ROC-01,
+1,MDS-838613,B2,HS-7200-AL,"Heatsink extrusion, anodized",,COMPONENT,EA,1,,US,6.5000,6.50,11,BUY,T.VESELY,2026-02-15,ROC-02,
+1,MDS-739866,C1,ENC-7200,"Enclosure sheet metal, powder-coated",Domestic fab,COMPONENT,EA,1,,US,11.0000,11.00,7,BUY,T.VESELY,2026-03-15,ROC-01,
+1,MDS-261137,B1,5045480401,"Control connector, 4-pos 1.25mm",Molex,INTERCONNECT,EA,4,J2-J5,MY,0.4500,1.80,9,BUY,A.OKONKWO,2026-02-20,ROC-02,
+1,MDS-171072,A3,MDC-9910-ALT,"Control connector, internal alternate",,COMPONENT,EA,2,,,,,,BUY,,,ROC-02,"internal alternate, no MPN mapped in vendor master"
+1,MDS-988748,A3,GBPC3508,"Input rectifier bridge, 35A 800V",Diodes Inc,DISCRETE,EA,1,D45,CN,2.8000,2.80,11,BUY,R.HALVERSEN,2026-01-25,ROC-01,
+1,MDS-195573,B2,S14K385,"Metal-oxide varistor, 385V",Littelfuse,COMPONENT,EA,3,D10-D12,CN,0.3000,0.90,8,BUY,T.VESELY,2026-04-06,ROC-02,
+1,MDS-642285,B2,0215004.MXP,"Cartridge fuse, 4A 250V",Littelfuse,COMPONENT,EA,2,F10-F11,US,0.5500,1.10,7,BUY,T.VESELY,2026-04-25,ROC-02,
+1,MDS-233404,A2,LTST-C170KGKT,"LED indicator, green 0805",Lite-On,COMPONENT,EA,2,DS5-DS6,CN,0.0600,0.12,6,BUY,T.VESELY,2026-03-10,ROC-01,
+1,MDS-211974,C3,HW-KIT-7200,Fastener / hardware kit,Domestic,HARDWARE,EA,1,,CN,0.9000,0.90,5,BUY,T.VESELY,2026-05-02,ROC-01,

@@ -13,9 +13,9 @@
 //
 // One overlay, reused from every trigger (NodeDetailPanel, EventFeed,
 // PartDrawer, OwnershipDrawer, DocumentModal). Centered modal + backdrop
-// (DocumentModal's pattern), z-[75], above the exposure drawers (z-40), the
-// shared node-detail panel (z-20), and the always-on ProvenanceBadge (z-[60]),
-// so it sits above whatever triggered it in every case.
+// (DocumentModal's pattern), z-[75], above the exposure drawers (z-40) and the
+// shared node-detail panel (z-20), so it sits above whatever triggered it in
+// every case.
 
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";

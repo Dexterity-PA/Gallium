@@ -7,7 +7,6 @@ import { EntryScreen } from "@/components/entry/EntryScreen";
 import { ResolutionScreen } from "@/components/entry/ResolutionScreen";
 import { resolveUploadRows, type ResolutionSummary } from "@/lib/uploadResolution";
 import type { UploadRow } from "@/lib/csv";
-import { SAMPLE_UPLOAD_ROWS } from "@/lib/data/sampleUpload";
 
 // The app's real landing state (BRIEF: "land on your new entry state instead
 // [of redirecting straight to /radar]"). Renders with zero dashboard chrome
@@ -33,24 +32,12 @@ export default function Home() {
     if (hydrated && loaded) router.replace(LANDING_ROUTE);
   }, [hydrated, loaded, router]);
 
-  const startResolution = useCallback(
-    (rows: UploadRow[], source: "sample" | "upload", fileName?: string) => {
-      const summary = resolveUploadRows(rows, source, fileName);
-      setStage({ kind: "resolving", summary });
-    },
-    []
-  );
-
-  const handleUseSample = useCallback(() => {
-    startResolution(SAMPLE_UPLOAD_ROWS, "sample");
-  }, [startResolution]);
-
-  const handleUpload = useCallback(
-    (rows: UploadRow[], fileName: string) => {
-      startResolution(rows, "upload", fileName);
-    },
-    [startResolution]
-  );
+  // Every entry is an upload now: the sample BOM is a committed CSV the
+  // operator drops in, not a button that skips the parser.
+  const handleUpload = useCallback((rows: UploadRow[], fileName: string) => {
+    const summary = resolveUploadRows(rows, "upload", fileName);
+    setStage({ kind: "resolving", summary });
+  }, []);
 
   const handleComplete = useCallback(
     (summary: ResolutionSummary) => {
@@ -66,5 +53,5 @@ export default function Home() {
     return <ResolutionScreen summary={stage.summary} onComplete={handleComplete} />;
   }
 
-  return <EntryScreen onUseSample={handleUseSample} onUpload={handleUpload} />;
+  return <EntryScreen onUpload={handleUpload} />;
 }

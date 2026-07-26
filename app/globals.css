@@ -63,7 +63,7 @@ body {
      spacing scale stops at --sp-5 (16px), which is not enough on its own.
      RULE 7 sanctions calc() over those five steps, so this is 16 + 8 and not
      a sixth invented spacing value. Consumers: components/ui/Panel.tsx
-     (corner labels) and components/chrome/ProvenanceBadge.tsx. */
+     (corner labels) and every band pinned to a viewport edge. */
   --safe-inset: calc(var(--sp-5) + var(--sp-3));
 }
 

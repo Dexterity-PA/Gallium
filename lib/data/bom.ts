@@ -4,7 +4,11 @@ import { assertBand, assertNoAdjacentRepeats } from "@/lib/data/confidence";
 // Per-line provenance documents. Derived from each line's observability, so a
 // new line gets sources by construction. Every id resolves in lib/data/sources.ts
 // (referential integrity is guarded there). See deriveBomSourceIds below.
-function deriveBomSourceIds(s: Omit<BomLine, "sourceIds">): string[] {
+//
+// Exported because the other six products' bills of materials
+// (lib/data/products.ts) attach their documents the same way. A second copy of
+// this mapping there is a second thing to keep in step with sources.ts.
+export function deriveBomSourceIds(s: Omit<BomLine, "sourceIds">): string[] {
   if (s.provenance === "MODELED") return ["SRC-SUBSTRATE-MKT", "SRC-NET-INFER"];
   if (s.erpBlind) return ["SRC-DIST-ALLOC", "SRC-IMPORT-REC", "SRC-KHH-CUSTOMS"];
   if (s.status === "EXPOSED")

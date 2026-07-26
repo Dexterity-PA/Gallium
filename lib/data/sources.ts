@@ -1,5 +1,6 @@
 import type { SourceDoc } from "@/lib/types";
 import { BOM } from "@/lib/data/bom";
+import { PRODUCTS } from "@/lib/data/products";
 import { FEED_EVENTS, PRIMARY_EVENT } from "@/lib/data/event";
 import { SITES } from "@/lib/data/sites";
 import { GRAPH } from "@/lib/data/graph";
@@ -295,6 +296,14 @@ export function getSources(ids: string[]): SourceDoc[] {
 // four downstream agents trust `sourceIds` without re-checking.
 export const SOURCE_ASSERTIONS = (() => {
   const referenced = new Set<string>();
+  // All seven products, not just the focus one: the other six carry resolved
+  // BOMs too (lib/data/products.ts) and their lines cite documents the same way.
+  for (const product of PRODUCTS) {
+    for (const b of product.lines) {
+      b.sourceIds.forEach((id) => referenced.add(id));
+      b.ownershipChain?.sourceIds.forEach((id) => referenced.add(id));
+    }
+  }
   for (const b of BOM) {
     b.sourceIds.forEach((id) => referenced.add(id));
     b.ownershipChain?.sourceIds.forEach((id) => referenced.add(id));
