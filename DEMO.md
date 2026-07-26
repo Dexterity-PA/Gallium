@@ -27,7 +27,7 @@ The `REPRESENTATIVE DATA` badge stays visible in every frame you use. Do not cro
 
 | Time | Screen | Action | What the viewer sees |
 |---|---|---|---|
-| 0:00–0:08 | RADAR | Land on page, do nothing | Feed streaming, ticker scrolling, map arcs flowing, clock ticking. Establishes "this is live." |
+| 0:00–0:08 | RADAR | Land on page, do nothing | Feed streaming, map arcs flowing, clock ticking. Establishes "this is live." |
 | 0:08–0:20 | RADAR | Still nothing; let the timed events land | Congestion warning at 3.2s, carrier advisory at 5.6s, then the quarantine alert at 8.0s. Impact numbers count up. Segmented bar cascades red. |
 | 0:20–0:30 | RADAR | Hover Kaohsiung on the map | Crosshair, tooltip, stalled red arcs against flowing grey ones. |
 | 0:30–0:38 | EXPOSURE | Click nav, scroll the table slowly | Density. 31 rows, mixed status, violet modeled rows visible in passing. |
@@ -74,7 +74,7 @@ Do not oversell. The visuals carry it. Flat, confident delivery beats enthusiasm
 
 **Resolution.** Record at 1920×1080 minimum. Set the browser window to exactly 1920×1080 with no browser chrome. Use Chrome in fullscreen (`⌘⌃F`) or a kiosk window. Zero visible tabs, bookmarks, or OS menu bar.
 
-**Frame rate.** 60fps if your capture supports it. The graph animation and ticker scroll both look noticeably worse at 30.
+**Frame rate.** 60fps if your capture supports it. The graph animation looks noticeably worse at 30.
 
 **Display.** Record on the display you will export from. Recording on a retina display and exporting to 1080p softens the 10px labels badly. Test one take and look at the smallest text before committing.
 

@@ -326,25 +326,16 @@ Map rendering is hand-rolled SVG using `d3-geo` `geoEquirectangular`, with world
 
 ---
 
-## 7. Ticker
+## 7. Ticker (removed)
 
-```ts
-export const TICKER_ITEMS = [
-  { label: 'KAOHSIUNG PORT',      value: 'QUARANTINE ACTIVE', dir: 'up',   critical: true },
-  { label: 'MATURE NODE UTIL',    value: '94.2%',  delta: '+0.4',  dir: 'up' },
-  { label: 'ISO GATE DRVR LT',    value: '38W',    delta: '+12',   dir: 'up' },
-  { label: 'MCU C2000 LT',        value: '26W',    delta: '+3',    dir: 'up' },
-  { label: 'IGBT MOD 600V LT',    value: '22W',    delta: '+2',    dir: 'up' },
-  { label: 'TW STRAIT TRANSIT',   value: '+9.4D',  dir: 'up' },
-  { label: 'AIR FREIGHT TPE-ORD', value: '$8.40/KG', delta: '+2.10', dir: 'up' },
-  { label: 'SIC SCHOTTKY LT',     value: '19W',    delta: '-1',    dir: 'down' },
-  { label: 'BT SUBSTRATE SPOT',   value: '+2.1%',  dir: 'up' },
-]
-```
+The bottom ticker described here has been removed from the app. There is no
+`lib/data/ticker.ts` and no `components/chrome/Ticker.tsx`; no screen renders a
+scrolling strip, and the space it occupied is now bottom safe-inset. This
+section is kept only so the numbering of the sections below does not shift.
 
-Continuous horizontal scroll, ~40s loop. Red for up-arrows on lead times and costs, green for down.
-
-The 38-week gate driver lead time is anchored to the real March 2026 spike, where top components reached roughly 40 weeks against a 20–25 week norm.
+The 38-week gate driver lead time it used to carry survives in the lead-time
+pressure panel, and is still anchored to the real March 2026 spike, where top
+components reached roughly 40 weeks against a 20–25 week norm.
 
 ---
 
@@ -425,4 +416,4 @@ The observed count increments by 1 every 20 seconds during the demo. Over a two-
 
 ## 10. Determinism
 
-Every random-feeling behavior (ticker walks, feed arrival jitter, graph drift) must be seeded so takes are repeatable. Wrap in a `DemoClock` context with a fixed seed constant. A demo that plays differently every time is a demo you cannot cut.
+Every random-feeling behavior (feed arrival jitter, graph drift) must be seeded so takes are repeatable. Wrap in a `DemoClock` context with a fixed seed constant. A demo that plays differently every time is a demo you cannot cut.
