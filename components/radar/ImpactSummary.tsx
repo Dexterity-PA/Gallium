@@ -169,13 +169,18 @@ export function ImpactSummary({ active }: { active: boolean }) {
       <div className="mt-1 shrink-0">
         <div className="mb-1 flex items-center justify-between">
           {focusedPart ? (
+            // The trailing token is the ✕ glyph, not the word CLEAR: CLEAR
+            // is a BOM status (StatusGlyph), and on this line it sat right
+            // after an MPN, where it read as that part's status rather than
+            // as the affordance it is. True for this fan, false for any
+            // exposed part. Same glyph, same meaning, as the top bar's.
             <button
               type="button"
               className="label truncate text-dim transition-colors hover:text-interactive"
               onClick={clearFocus}
-              title="CLICK TO CLEAR"
+              title={`DROP FOCUS ON ${focusedPart.mpn}`}
             >
-              ISOLATED: {focusedPart.mpn} · CLEAR
+              ISOLATED: {focusedPart.mpn} ✕
             </button>
           ) : (
             <span className="label">EXPOSURE MAP</span>

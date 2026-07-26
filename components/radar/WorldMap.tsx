@@ -35,6 +35,7 @@ import {
   nodeDetailFromSite,
   type NodeDetail,
 } from "@/components/shared/NodeDetailPanel";
+import { statusColor } from "@/components/ui/StatusGlyph";
 // Bundled at build time. Nothing loads from the network at runtime.
 import worldTopo from "../../public/geo/world-110m.json";
 
@@ -841,8 +842,21 @@ export function WorldMap({
       ...siteNodes.map((n) => n.id),
     ]);
     const edgeKeys = new Set(edges.map((e) => `${e.source}|${e.target}`));
-    // A modeled line is still a path and must draw: violet, not skipped.
-    const color = bomLine.provenance === "MODELED" ? "var(--modeled)" : "var(--critical)";
+    // The path takes the line's OWN colour, off the same two fields the BOM
+    // table's status cell reads (statusColor, components/ui/StatusGlyph) and
+    // the exposure count filters on. Red asserts observed exposure, so a
+    // CLEAR part whose route never enters the zone must not draw in it: that
+    // would be the map contradicting the engine that left the part out of
+    // the fourteen. AT_RISK takes the same --text-primary the status cell
+    // gives a moved quote; CLEAR the same --text-dim, neutral weight.
+    //
+    // Provenance outranks status: a modeled sub-tier line is violet whatever
+    // its status, because --modeled is a claim about where the fact came
+    // from, not about how bad it is (RULE 2).
+    const color =
+      bomLine.provenance === "MODELED"
+        ? "var(--modeled)"
+        : statusColor(bomLine.status);
     return { bomLine, partNode, supplierId, siteNodes, edges, nodeIds, edgeKeys, color };
   }, [isolate]);
 
@@ -1090,8 +1104,9 @@ export function WorldMap({
           })}
 
           {/* The isolated part's own path: Meridian → part → supplier →
-              site(s), drawn on top of everything else. Modeled lines isolate
-              in violet, observed in red; a modeled path is still a path. */}
+              site(s), drawn on top of everything else, in the focused line's
+              own status colour (see isolateData). Modeled lines isolate in
+              violet whatever their status; a modeled path is still a path. */}
           {isolateData
             ? isolateData.edges.map((e) => {
                 const a = NODE_BY_ID.get(e.source) as PlacedNode;

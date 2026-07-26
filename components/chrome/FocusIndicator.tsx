@@ -17,11 +17,18 @@ import { useFocusedPart } from "@/lib/focus";
 // and the clear affordance matches the RESET / ⌘K buttons (label treatment,
 // hover to --text-primary).
 //
+// The affordance is the ✕ glyph with no word next to it. It used to read
+// "✕ CLEAR", which collided twice over: CLEAR is one of the three BOM
+// statuses (StatusGlyph), so the label read as a claim about the focused
+// part, and this bar already carries a RESET button three segments along
+// that resets the whole demo. The glyph carries the meaning; the accessible
+// name and the tooltip say which focus it drops.
+//
 // No Escape handler, deliberately: AppShell's window keydown closes the
 // palette on Escape without checking whether it is open, and screen-level
 // drawers/modals carry their own Escape handling. A global Escape here
 // would clear focus underneath whichever surface the user was actually
-// dismissing. The ✕ CLEAR button is the affordance.
+// dismissing. The ✕ button is the affordance.
 
 // Same 1px hairline the StatusBar uses between segments (separators are
 // rules, not pipe characters).
@@ -49,11 +56,11 @@ export function FocusIndicator() {
         <button
           type="button"
           onClick={clearFocus}
-          className="label flex shrink-0 items-center gap-1 transition-colors hover:text-primary"
-          aria-label={`Clear focus on ${focusedPart.mpn}`}
+          className="label flex shrink-0 items-center px-1 transition-colors hover:text-primary"
+          title={`Drop focus on ${focusedPart.mpn}`}
+          aria-label={`Drop focus on ${focusedPart.mpn}`}
         >
           <span aria-hidden>✕</span>
-          <span>CLEAR</span>
         </button>
       </div>
       <Div />

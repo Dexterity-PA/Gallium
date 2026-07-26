@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useFocusedPart, FOCUS_PARAM } from "@/lib/focus";
+import { useFocusedPart } from "@/lib/focus";
 import { BOM } from "@/lib/data/bom";
 import { SITES } from "@/lib/data/sites";
 import { ACTIONS } from "@/lib/data/actions";
@@ -15,8 +15,10 @@ interface Entry {
   id: string;
   label: string;
   sub: string;
-  href: string;
-  focus?: string;
+  // Where selecting this row takes you. PART rows deliberately have none:
+  // focusing a part is a change of view state, not a change of screen (see
+  // commit below).
+  href?: string;
 }
 
 // Kind badges are wayfinding, not a RULE 4 severity signal: PART/SUPPLIER/SITE
@@ -30,15 +32,13 @@ const KIND_COLOR: Record<EntryKind, string> = {
 };
 
 function buildCorpus(): Entry[] {
-  // PART rows carry the MPN, the public ?focus= currency (lib/focus): the
-  // deep link reads as /exposure?focus=VS-GT100TS60U, not an internal id.
+  // PART rows carry the MPN, the public ?focus= currency (lib/focus). No
+  // href: see commit().
   const parts: Entry[] = BOM.map((b) => ({
     kind: "PART",
     id: b.id,
     label: b.mpn,
     sub: b.description,
-    href: "/exposure",
-    focus: b.mpn,
   }));
   const suppliers: Entry[] = GRAPH.nodes
     .filter((n) => n.kind === "SUPPLIER")
@@ -123,18 +123,26 @@ export function CommandPalette({
   const commit = (entry: Entry | undefined) => {
     if (!entry) return;
     onClose();
-    // PART rows set the shared focused-part state directly (lib/focus), so
-    // every screen reacts immediately; the ?focus= param on the pushed URL
-    // is the durable deep-link representation of the same thing.
+    // PART rows set the shared focused-part state and STOP. Focus is view
+    // state, not a destination: the palette is opened over whichever screen
+    // the user is reading, and narrowing that screen to a part must not also
+    // move them off it. setFocusedPart writes ?focus=MPN onto the current
+    // URL, so the deep link is still there to copy; every screen, including
+    // whichever one this was invoked over, reacts to the shared state.
+    //
+    // EXPOSURE keeps the two behaviours that belong to it: when it is the
+    // current screen, the focused row scrolls into view and its drawer opens
+    // (app/exposure/page.tsx), off the same shared state, no navigation
+    // involved.
     if (entry.kind === "PART") {
       const line = BOM.find((b) => b.id === entry.id);
       if (line) setFocusedPart(line);
+      return;
     }
-    router.push(
-      entry.focus
-        ? `${entry.href}?${FOCUS_PARAM}=${encodeURIComponent(entry.focus)}`
-        : entry.href
-    );
+    // SUPPLIER / SITE / ACTION have no shared-state equivalent to set, so
+    // they stay navigational: the row is a way to reach the screen that
+    // holds the thing.
+    if (entry.href) router.push(entry.href);
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
