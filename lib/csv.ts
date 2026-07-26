@@ -1,4 +1,4 @@
-// Hand-rolled CSV parsing/serialization for the upload flow. No dependency —
+// Hand-rolled CSV parsing/serialization for the upload flow. No dependency,
 // the format is small (two columns) and a real parser earns its keep: quoted
 // fields, embedded commas, escaped "" quotes. RFC4180-ish, not a full spec.
 
@@ -72,7 +72,7 @@ export function parseCsv(text: string): CsvRecord[] {
 // Pulls the mpn/description columns an uploaded BOM would carry. Tolerant of
 // a couple of common header spellings for the MPN column. A row with no MPN
 // at all is dropped here; a row whose MPN fails to match the parts network is
-// NOT dropped — that distinction (UNRESOLVED) is made downstream by
+// NOT dropped: that distinction (UNRESOLVED) is made downstream by
 // resolveUploadRows, never here.
 export function extractUploadRows(records: CsvRecord[]): UploadRow[] {
   return records
@@ -84,7 +84,7 @@ export function extractUploadRows(records: CsvRecord[]): UploadRow[] {
     .filter((r) => r.mpn.length > 0);
 }
 
-// Serializes rows to CSV text for the template download — the exact columns
+// Serializes rows to CSV text for the template download, using the exact columns
 // extractUploadRows expects: mpn, description.
 export function buildCsvText(header: string[], rows: UploadRow[]): string {
   const escape = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);

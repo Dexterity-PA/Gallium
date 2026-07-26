@@ -42,7 +42,15 @@ import { BAND_INSET } from "@/components/portfolio/layout";
 
    The table's rows are flex-1, so seven products fill the remaining
    height exactly and nothing scrolls. Padding is not uniform (RULE 8):
-   bands frame at py-4, the dense row interior sits at py-3.
+   the bands frame at py-3, the dense row interior sits at py-1.5.
+
+   Those two steps are set by 1280x700, not by 1920x1080. Because the rows
+   are flex-1, their padding is a MINIMUM height, not their height: at
+   1920 every row is 113px around the same content and the step makes no
+   visible difference. At 1280x700 the seven rows share 418px, and the
+   larger steps made each row demand more than it was given, which a flex
+   column resolves by cropping the row's content rather than scrolling.
+   The band copy is kept to one line at 1280px wide for the same reason.
    ============================================================ */
 
 const RESOLVE_DELAY_MS = 900;
@@ -106,7 +114,7 @@ export default function PortfolioPage() {
         {/* rollup - the "this is your business" read, all of it reduced
             over the rows below, none of it authored */}
         <div
-          className="flex shrink-0 items-stretch gap-4 border-b border-rule pl-4 py-4"
+          className="flex shrink-0 items-stretch gap-4 border-b border-rule pl-4 py-3"
           style={BAND_INSET}
         >
           <Metric
@@ -127,7 +135,7 @@ export default function PortfolioPage() {
             label="Lines exposed"
             confirmed={String(split.confirmedLines)}
             screened={`${ESTIMATE_MARK}${split.screenedLines}`}
-            sub={`confirmed, of ${focus.bomLines} resolved lines`}
+            sub={`of ${focus.bomLines} resolved lines`}
             tone={confirmedTone}
             className="flex-1"
           />
@@ -136,7 +144,7 @@ export default function PortfolioPage() {
             label="Value at risk"
             confirmed={riskLabel(split.confirmedValue)}
             screened={`${ESTIMATE_MARK}${riskLabel(split.screenedValue)}`}
-            sub={`confirmed, of ${riskLabel(totals.quarterlyBuildValue)} quarterly build`}
+            sub={`of ${riskLabel(totals.quarterlyBuildValue)} quarterly build`}
             tone={confirmedTone}
             className="flex-1"
           />
@@ -144,7 +152,7 @@ export default function PortfolioPage() {
           <Metric
             label="Days to halt"
             value={focus.daysToHalt === null ? NO_VALUE : String(focus.daysToHalt)}
-            sub={`${focus.code} · the only ingested BOM`}
+            sub={`${focus.code} · only ingested BOM`}
             tone={confirmedTone}
             className="flex-1"
           />
@@ -156,13 +164,16 @@ export default function PortfolioPage() {
         {/* footer - deliberately short. The fixed provenance badge owns the
             bottom-right corner, so this line must not run under it. */}
         <div className="shrink-0 border-t border-rule pl-4 py-2" style={BAND_INSET}>
+          {/* One line at 1280px wide, not two. This band sits directly under
+              the blotter, and every row it wraps to is a row of height taken
+              off seven flex-1 rows that are already the tightest thing on the
+              screen at 700px tall. */}
           <span className="label">
-            Ranked by value at risk. {focus.code} is resolved line by line and
-            opens on click. The other six are supplier-level screens:{" "}
+            Ranked by value at risk. {focus.code} opens on click;{" "}
             <span style={{ color: "var(--modeled)" }}>
               {ESTIMATE_MARK} and violet mark a modeled figure
             </span>
-            , days to halt needs a BOM ingest.
+            . Days to halt needs a BOM ingest.
           </span>
         </div>
       </section>

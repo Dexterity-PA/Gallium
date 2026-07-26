@@ -2,11 +2,11 @@
 @import "../styles/tokens.css";
 
 /* ============================================================
-   GALLIUM — typeface
+   GALLIUM typeface
 
    Ioskeley Mono (github.com/ahatem/IoskeleyMono), self-hosted.
    The only family in the app: there is no sans stack, no display
-   face, no second voice. font-display: block — the instrument
+   face, no second voice. font-display: block, because the instrument
    panel is dense numeric data, and reflowing it from a fallback
    metric mid-record looks worse than a brief hold.
    ============================================================ */
@@ -53,6 +53,18 @@ body {
 :root {
   /* every figure in the app is a column that has to line up */
   font-variant-numeric: tabular-nums;
+
+  /* ---- viewport safe inset ---------------------------------
+     24px of clearance between any text glyph and a viewport edge, so a
+     corner label or the provenance badge never reads as clipped on a narrow
+     laptop window. Verified at 1280x700, 1512x857, 1728x1000 and 1920x1080.
+
+     Composed rather than authored: styles/tokens.css is the contract and its
+     spacing scale stops at --sp-5 (16px), which is not enough on its own.
+     RULE 7 sanctions calc() over those five steps, so this is 16 + 8 and not
+     a sixth invented spacing value. Consumers: components/ui/Panel.tsx
+     (corner labels) and components/chrome/ProvenanceBadge.tsx. */
+  --safe-inset: calc(var(--sp-5) + var(--sp-3));
 }
 
 html {
@@ -82,7 +94,7 @@ body {
    See styles/tokens.css RULE 1.
 
    Lives in @layer components so a utility can still override the colour on
-   the rare label that is also a state (LIVE) — utilities layer after
+   the rare label that is also a state (LIVE): utilities layer after
    components, so `text-ok` wins without needing !important. */
 @layer components {
   .label {
@@ -99,7 +111,7 @@ body {
   color: var(--text-primary);
 }
 
-/* thin, unobtrusive scrollbars — panels scroll internally */
+/* thin, unobtrusive scrollbars; panels scroll internally */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--rule-strong) transparent;
@@ -206,7 +218,7 @@ body {
 
 /* shipping-lane packets flow toward Rockford (DESIGN/DATA §6).
    Composited via CSS motion-path (transform), so the large static arc
-   lines never repaint — keeps the map smooth at 60fps. */
+   lines never repaint, which keeps the map smooth at 60fps. */
 @keyframes packet-flow {
   from {
     offset-distance: 0%;

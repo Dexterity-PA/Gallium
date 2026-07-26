@@ -756,7 +756,13 @@ export function SupplyGraph({
         onClose={clearSelection}
       />
 
-      <div className="absolute bottom-2 right-2 z-10 flex flex-col items-end gap-1">
+      {/* right offset is the shared 24px safe margin, not right-2: this panel
+          is full bleed, so the canvas right edge is the window's and these
+          two controls were the right-most glyphs on the screen at 8px out. */}
+      <div
+        className="absolute bottom-2 z-10 flex flex-col items-end gap-1"
+        style={{ right: "var(--safe-inset)" }}
+      >
         <button
           type="button"
           onClick={onToggleFullNetwork}

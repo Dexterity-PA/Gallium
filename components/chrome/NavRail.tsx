@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 // Left rail (DESIGN.md §4). Three-letter text labels, not icons: this is an
 // instrument panel, and a three-letter code is read faster and more precisely
 // than a glyph the viewer has to decode. Active item takes a 2px --focus left
-// rule and --text-primary text — no fill, so the rail stays flat against the
+// rule and --text-primary text, with no fill, so the rail stays flat against the
 // panel plane. Route changes are instant, no page transition.
 
 interface NavItem {
   href: string;
-  code: string; // the rail label — three letters, --fs-label
+  code: string; // the rail label: three letters, --fs-label
   label: string; // the full screen name, for a11y and the tooltip
 }
 

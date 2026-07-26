@@ -5,7 +5,7 @@ import type { BomLine } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Derived view model. This is a rollup of BOM lines that are already in
-// lib/data/bom.ts — no new dataset, and nothing here is invented: every figure
+// lib/data/bom.ts. No new dataset, and nothing here is invented: every figure
 // on screen is a leadTimeWeeks / leadTimeDelta already carried by a part.
 //
 // The BOM has no category field, so categories come from ordered keyword rules
@@ -31,7 +31,7 @@ function categoryOf(line: BomLine): string {
 export interface PressureRow {
   category: string;
   lines: number;
-  driver: BomLine; // the longest-pole part — it is what gates the build
+  driver: BomLine; // the longest-pole part, which is what gates the build
   now: number;
   was: number;
   delta: number;
@@ -194,7 +194,7 @@ export function LeadTimePressure({ active }: { active: boolean }) {
       </div>
       <div className="mt-1 text-label leading-body">
         <span style={{ color: "var(--modeled)" }}>■</span>{" "}
-        <span className="text-dim">MODELED — INFERRED, NOT PER-PART OBSERVED.</span>
+        <span className="text-dim">MODELED · INFERRED, NOT PER-PART OBSERVED.</span>
       </div>
     </div>
   );

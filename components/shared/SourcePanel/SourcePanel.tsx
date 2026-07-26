@@ -7,13 +7,13 @@
 //               kind, retrievedAt, url, excerpt).
 //   MODELED   → an inference-explanation view. A MODELED record's sourceIds
 //               still resolve to a SourceDoc (kind "NETWORK_INFERENCE"), but
-//               that doc is never rendered as a document — Gallium's modeling
+//               that doc is never rendered as a document, because Gallium's modeling
 //               basis is not a citation, and showing it as one would be
 //               dishonest about what backs the number.
 //
 // One overlay, reused from every trigger (NodeDetailPanel, EventFeed,
 // PartDrawer, OwnershipDrawer, DocumentModal). Centered modal + backdrop
-// (DocumentModal's pattern), z-[75] — above the exposure drawers (z-40), the
+// (DocumentModal's pattern), z-[75], above the exposure drawers (z-40), the
 // shared node-detail panel (z-20), and the always-on ProvenanceBadge (z-[60]),
 // so it sits above whatever triggered it in every case.
 
@@ -32,7 +32,7 @@ function formatKind(kind: SourceDoc["kind"]): string {
 
 // A MODELED record's sourceIds can legitimately include OBSERVED corroborating
 // docs alongside the NETWORK_INFERENCE doc (e.g. a substrate-market quote plus
-// the network inference itself) — split on the doc's own provenance/kind, not
+// the network inference itself): split on the doc's own provenance/kind, not
 // on the triggering record's provenance, so that mix renders correctly.
 function isInference(doc: SourceDoc): boolean {
   return doc.provenance === "MODELED" || doc.kind === "NETWORK_INFERENCE";
@@ -68,7 +68,7 @@ function ObservedRow({ doc }: { doc: SourceDoc }) {
         </a>
       ) : (
         <div className="mt-1 pl-3 text-label text-dim">
-          first-party record — no public URL
+          first-party record, no public URL
         </div>
       )}
     </div>
@@ -125,6 +125,11 @@ export function SourcePanel({
     <AnimatePresence>
       {sourceIds && docs.length ? (
         <motion.div
+          // Keyed for AnimatePresence (see DocumentModal). A constant is right
+          // here: only one provenance overlay is ever mounted, and re-pointing
+          // it at a different record should cross-fade the contents rather
+          // than tear the whole panel down and rebuild it.
+          key="source-panel"
           className="fixed inset-0 z-[75] flex items-center justify-center bg-black/55"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -144,7 +149,7 @@ export function SourcePanel({
             {/* header */}
             <div className="flex h-row shrink-0 items-center justify-between border-b border-rule px-2">
               <span className="text-value uppercase text-primary">
-                Provenance{context ? ` — ${context}` : ""}
+                Provenance{context ? ` · ${context}` : ""}
               </span>
               <button
                 type="button"
@@ -159,7 +164,7 @@ export function SourcePanel({
             {/* body */}
             <div className="min-h-0 flex-1 overflow-auto p-2">
               <div className="mb-2 text-label leading-relaxed text-dim">
-                Fictional, representative documents for this demo — the schema
+                Fictional, representative documents for this demo. The schema
                 and click path are what a live integration would carry through
                 unchanged.
               </div>

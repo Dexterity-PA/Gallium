@@ -13,11 +13,11 @@ function deriveBomSourceIds(s: Omit<BomLine, "sourceIds">): string[] {
   return ["SRC-ERP-MERIDIAN"]; // CLEAR
 }
 
-// MD-7200 bill of materials — 31 lines (DATA.md §4).
+// MD-7200 bill of materials: 31 lines (DATA.md §4).
 // Composition (exposed = 14):
 //   4  direct Taiwan-sourced, tier 1, procurement already knows   (BOM-01..04)
 //   4  exposed via distribution routing through the zone, tier 2  (BOM-05,06,10,11)
-//   3  Tier-2 ERP-blind catches — the "TIER-2 CATCHES 3"          (BOM-07,08,09)
+//   3  Tier-2 ERP-blind catches, the "TIER-2 CATCHES 3"          (BOM-07,08,09)
 //   3  modeled Tier-3, substrate / leadframe inference            (BOM-12,13,14)
 //   5  at risk, lead time extending but not zone-exposed          (BOM-15..19)
 //  12  clear                                                      (BOM-20..31)
@@ -25,14 +25,17 @@ function deriveBomSourceIds(s: Omit<BomLine, "sourceIds">): string[] {
 // Only the three ERP-blind catches carry erpBlind:true, so
 // (erpBlind && tier===2 && EXPOSED) counts to exactly 3.
 //
-// Lead times run odd more often than even and the deltas are not round —
+// Lead times run odd more often than even and the deltas are not round:
 // quotes come back at 23 and 31 weeks, not 20 and 30, and they move by 7 or
 // 2.5 rather than by 5. ticker.ts now READS these lines (leadTimeRow) instead
 // of repeating their numbers, so the strip cannot disagree with the table.
 //
 // Confidence is authored per line, never a shared constant: see the note at the
 // top of confidence.ts for why a column of identical 100%s was the problem.
-// BOM-24 has no manufacturer of record — an em dash, not a placeholder string.
+// BOM-24 has no manufacturer of record, so its manufacturer is the literal
+// "n/a". That exact string is a JOIN KEY: lib/data/graph.ts MFR_TO_SUPPLIER
+// maps it to S-DIST-C, the regional distributor that supplies the line. Change
+// it in one file only and the node silently drops out of the graph.
 //
 // Authored without `sourceIds`; each line's documents are attached at load by
 // deriveBomSourceIds, so every exported BomLine carries a non-empty sourceIds.
@@ -285,8 +288,8 @@ const BOM_SEED: Omit<BomLine, "sourceIds">[] = [
     id: "BOM-12",
     mpn: "LF-C194-INF",
     description: "Leadframe, Cu alloy (module package)",
-    manufacturer: "Modeled — leadframe supplier",
-    erpOrigin: "—",
+    manufacturer: "Modeled leadframe supplier",
+    erpOrigin: "n/a",
     actualExposure: "TW backend (modeled)",
     tier: 3,
     status: "EXPOSED",
@@ -305,8 +308,8 @@ const BOM_SEED: Omit<BomLine, "sourceIds">[] = [
     id: "BOM-13",
     mpn: "SUB-BT-INF",
     description: "BT laminate substrate (module package)",
-    manufacturer: "Modeled — substrate supplier",
-    erpOrigin: "—",
+    manufacturer: "Modeled substrate supplier",
+    erpOrigin: "n/a",
     actualExposure: "TW-KAOHSIUNG (modeled)",
     tier: 3,
     status: "EXPOSED",
@@ -325,8 +328,8 @@ const BOM_SEED: Omit<BomLine, "sourceIds">[] = [
     id: "BOM-14",
     mpn: "PKG-MC-INF",
     description: "Mold compound / bond wire (assembly materials)",
-    manufacturer: "Modeled — assembly materials",
-    erpOrigin: "—",
+    manufacturer: "Modeled assembly materials",
+    erpOrigin: "n/a",
     actualExposure: "TW-KAOHSIUNG (modeled)",
     tier: 3,
     status: "EXPOSED",
@@ -502,7 +505,7 @@ const BOM_SEED: Omit<BomLine, "sourceIds">[] = [
     id: "BOM-24",
     mpn: "HS-7200-AL",
     description: "Heatsink extrusion, anodized",
-    manufacturer: "—",
+    manufacturer: "n/a",
     erpOrigin: "US",
     actualExposure: null,
     tier: 1,
@@ -648,16 +651,16 @@ export const BOM: BomLine[] = BOM_SEED.map((s) => ({
 //   24 CLEAR · 5 REVIEW · 2 FLAGGED   (non-CLEAR = 7 → the OWNERSHIP chip)
 //
 // HARD CONSTRAINT (verified below in OWNERSHIP_ASSERTIONS): the 2 FLAGGED
-// lines are BOTH logistics-CLEAR (BOM-27, BOM-31) — the whole point is that a
+// lines are BOTH logistics-CLEAR (BOM-27, BOM-31). The whole point is that a
 // part clean on shipping can still cross the 50% affiliates threshold. The 5
 // REVIEW rows are spread across EXPOSED / AT_RISK / CLEAR to underline the two
 // axes are orthogonal. Corporate names below are representative/fictional and
 // deliberately do NOT touch each line's `manufacturer` (the graph maps on it).
 
-// FLAGGED — ownership chain crosses the 50% threshold via an intermediate
+// FLAGGED: ownership chain crosses the 50% threshold via an intermediate
 // parent. parentPct ~62, ultimateParent MODELED at conf ~68, thresholdCrossed.
 const OWNERSHIP_FLAGGED: Record<string, OwnershipChain> = {
-  // GBPC3508 input rectifier bridge — logistics CLEAR, ownership FLAGGED.
+  // GBPC3508 input rectifier bridge: logistics CLEAR, ownership FLAGGED.
   "BOM-27": {
     supplierOfRecord: "Zhongtai Rectifier Trading Co., Ltd",
     parentEntity: "Nanhai Power Semiconductor Holdings",
@@ -667,7 +670,7 @@ const OWNERSHIP_FLAGGED: Record<string, OwnershipChain> = {
     thresholdCrossed: true,
     sourceIds: ["SRC-CORP-REGISTRY", "SRC-IMPORT-REC", "SRC-OWNERSHIP-MDL"],
   },
-  // HW-KIT-7200 fastener / hardware kit — logistics CLEAR, ownership FLAGGED.
+  // HW-KIT-7200 fastener / hardware kit: logistics CLEAR, ownership FLAGGED.
   "BOM-31": {
     supplierOfRecord: "Meridian Fastener Supply Ltd",
     parentEntity: "Greatwall Hardware Group",
@@ -679,10 +682,10 @@ const OWNERSHIP_FLAGGED: Record<string, OwnershipChain> = {
   },
 };
 
-// REVIEW — a chain worth screening but NOT (yet) over the 50% threshold. Shown
+// REVIEW: a chain worth screening but NOT (yet) over the 50% threshold. Shown
 // in the drawer without the alarm block. parentPct below 50, ultimate MODELED.
 const OWNERSHIP_REVIEW: Record<string, OwnershipChain> = {
-  // TDK EPCOS DC-link film cap — logistics EXPOSED, ownership REVIEW.
+  // TDK EPCOS DC-link film cap: logistics EXPOSED, ownership REVIEW.
   "BOM-05": {
     supplierOfRecord: "Rhine Passive Distribution GmbH",
     parentEntity: "Central Europe Components AG",
@@ -692,7 +695,7 @@ const OWNERSHIP_REVIEW: Record<string, OwnershipChain> = {
     thresholdCrossed: false,
     sourceIds: ["SRC-CORP-REGISTRY", "SRC-OWNERSHIP-MDL"],
   },
-  // Bourns current-sense shunt — logistics EXPOSED, ownership REVIEW.
+  // Bourns current-sense shunt: logistics EXPOSED, ownership REVIEW.
   "BOM-10": {
     supplierOfRecord: "Vanguard Sensing Supply Co.",
     parentEntity: "Pacific Precision Group",
@@ -702,7 +705,7 @@ const OWNERSHIP_REVIEW: Record<string, OwnershipChain> = {
     thresholdCrossed: false,
     sourceIds: ["SRC-CORP-REGISTRY", "SRC-OWNERSHIP-MDL"],
   },
-  // Würth common-mode choke — logistics AT_RISK, ownership REVIEW.
+  // Würth common-mode choke: logistics AT_RISK, ownership REVIEW.
   "BOM-17": {
     supplierOfRecord: "Baltic Magnetics Vertrieb GmbH",
     parentEntity: "Hanseatic Components Holding",
@@ -712,7 +715,7 @@ const OWNERSHIP_REVIEW: Record<string, OwnershipChain> = {
     thresholdCrossed: false,
     sourceIds: ["SRC-CORP-REGISTRY", "SRC-OWNERSHIP-MDL"],
   },
-  // Yageo chip resistor — logistics CLEAR, ownership REVIEW.
+  // Yageo chip resistor: logistics CLEAR, ownership REVIEW.
   "BOM-21": {
     supplierOfRecord: "Formosa Passive Trading Co.",
     parentEntity: "Taixin Components Holdings",
@@ -722,7 +725,7 @@ const OWNERSHIP_REVIEW: Record<string, OwnershipChain> = {
     thresholdCrossed: false,
     sourceIds: ["SRC-CORP-REGISTRY", "SRC-OWNERSHIP-MDL"],
   },
-  // Molex control connector — logistics CLEAR, ownership REVIEW.
+  // Molex control connector: logistics CLEAR, ownership REVIEW.
   "BOM-26": {
     supplierOfRecord: "Selangor Interconnect Sdn Bhd",
     parentEntity: "Peninsula Electronics Group",
@@ -734,7 +737,7 @@ const OWNERSHIP_REVIEW: Record<string, OwnershipChain> = {
   },
 };
 
-// Apply the axis to all 31 lines at module load — every line gets an explicit
+// Apply the axis to all 31 lines at module load, so every line gets an explicit
 // `ownership`; the 7 non-CLEAR lines also carry an `ownershipChain`.
 for (const line of BOM) {
   if (OWNERSHIP_FLAGGED[line.id]) {
@@ -768,7 +771,7 @@ export const OWNERSHIP_REVIEW_NOTE = {
   heading: "BELOW 50% THRESHOLD",
   bodyLines: [
     "Ownership chain does not cross the affiliates",
-    "screening threshold. Monitored — a change in the",
+    "screening threshold. Monitored, since a change in the",
     "intermediate parent stake could attach an obligation.",
   ],
   sources:
@@ -790,7 +793,7 @@ export const ERP_BLIND_WARNING = {
 
 // Tooltip / drawer copy for modeled rows (DATA.md §4). The moat, in-product.
 export const MODELED_NOTE =
-  "MODELED — inferred from industry structure, not per-part observed. Converts to OBSERVED as network coverage grows.";
+  "MODELED: inferred from industry structure, not per-part observed. Converts to OBSERVED as network coverage grows.";
 
 // ---- integrity checks (dev-time guard against silent drift) ----
 export const BOM_ASSERTIONS = (() => {
@@ -820,8 +823,8 @@ export const OWNERSHIP_ASSERTIONS = (() => {
 // Expected: { clear:24, review:5, flagged:2, nonClear:7, flaggedButShippingExposed:0 }
 
 // ---- confidence-band integrity ----
-// Every line's confidence — and every ownership chain's modeled ultimate-parent
-// confidence — must be a valid band value for its provenance. Throws on drift.
+// Every line's confidence, and every ownership chain's modeled ultimate-parent
+// confidence, must be a valid band value for its provenance. Throws on drift.
 export const BOM_CONFIDENCE_OK = (() => {
   for (const b of BOM) {
     assertBand(b.confidence, b.provenance, `BOM ${b.id}`);
@@ -833,7 +836,7 @@ export const BOM_CONFIDENCE_OK = (() => {
     }
   }
   // The table renders in this order, so consecutive rows must not share a
-  // confidence — a run of identical numbers down a column is the tell.
+  // confidence: a run of identical numbers down a column is the tell.
   assertNoAdjacentRepeats(
     BOM.map((b) => b.confidence),
     "BOM confidence column"
@@ -848,7 +851,7 @@ export const BOM_CONFIDENCE_SPREAD = (() => {
   const distinct = new Set(values).size;
   if (distinct < 12) {
     throw new Error(
-      `BOM confidence column is too uniform — ${distinct} distinct values across ${values.length} lines`
+      `BOM confidence column is too uniform: ${distinct} distinct values across ${values.length} lines`
     );
   }
   return { distinct, min: Math.min(...values), max: Math.max(...values) };

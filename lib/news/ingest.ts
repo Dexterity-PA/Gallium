@@ -2,7 +2,7 @@ import type { Article } from "@/lib/types";
 import { ARTICLES } from "@/lib/data/articles";
 
 // Ingest stage of the news pipeline (ingest → classify → match → render).
-// RawArticle is what a source hands back before classification — today that
+// RawArticle is what a source hands back before classification. Today that
 // shape is identical to the rendered Article, since the local corpus is
 // already "clean." A real feed adapter would return something rougher
 // (unparsed dek, no sourceIds) and a normalize() step would live here.

@@ -82,7 +82,7 @@ export default function RadarPage() {
       </Panel>
 
       <Panel
-        label="Global Shipping — Live"
+        label="Global Shipping · Live"
         corner="CYL · 102W–136E"
         className="h-full"
         noPad
@@ -92,7 +92,7 @@ export default function RadarPage() {
       </Panel>
 
       <Panel
-        label={`Impact — ${CUSTOMER.focusProduct.line}`}
+        label={`Impact · ${CUSTOMER.focusProduct.line}`}
         corner="Q4 2026"
         className="h-full"
         noPad

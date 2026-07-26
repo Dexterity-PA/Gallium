@@ -17,9 +17,9 @@ import { CommandPalette } from "@/components/chrome/CommandPalette";
 // chrome bands never scroll away. 1px hairlines separate every region.
 //
 // Chrome gating: the entry/resolution flow lives at "/" and must render with
-// NO dashboard chrome at all — no LIVE badge, no ticker, no OBSERVED/MODELED
+// NO dashboard chrome at all: no LIVE badge, no ticker, no OBSERVED/MODELED
 // counters (see AGENTS brief). Every other route keeps the exact chrome below,
-// unchanged, but only once a BOM is "loaded" (sample or uploaded) — a direct
+// unchanged, but only once a BOM is "loaded" (sample or uploaded). A direct
 // or stale visit to a dashboard route before that bounces back to "/"
 // client-side, no full reload. `useDemoState` is the localStorage-backed
 // flag; `hydrated` avoids flashing the wrong thing before the client can
@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   // Not yet confirmed loaded (first paint before hydration, or mid-redirect
-  // after a reset / stale direct nav) — render nothing rather than flash the
+  // after a reset / stale direct nav): render nothing rather than flash the
   // full dashboard chrome.
   if (!hydrated || !loaded) {
     return null;

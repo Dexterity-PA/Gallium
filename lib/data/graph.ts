@@ -108,8 +108,8 @@ const SUPPLIERS: SupplierDef[] = [
   { id: "S-LITEON", label: "Lite-On" },
   { id: "S-DOM", label: "Domestic fab / metal" },
   { id: "S-ASE", label: "ASE Technology Holding" },
-  { id: "S-DIST-A", label: "Authorized distributor — Arrow" },
-  { id: "S-DIST-B", label: "Authorized distributor — Avnet" },
+  { id: "S-DIST-A", label: "Authorized distributor: Arrow" },
+  { id: "S-DIST-B", label: "Authorized distributor: Avnet" },
   { id: "S-DIST-C", label: "Regional distributor" },
   { id: "S-SUBS", label: "Substrate consortium", modeled: true },
   { id: "S-LEADFR", label: "Leadframe supplier", modeled: true },
@@ -141,12 +141,12 @@ const MFR_TO_SUPPLIER: Record<string, string> = {
   "Domestic fab": "S-DOM",
   "Domestic extrusion": "S-DOM",
   Domestic: "S-DOM",
-  "Modeled — substrate supplier": "S-SUBS",
-  "Modeled — leadframe supplier": "S-LEADFR",
-  "Modeled — assembly materials": "S-ASSY",
+  "Modeled substrate supplier": "S-SUBS",
+  "Modeled leadframe supplier": "S-LEADFR",
+  "Modeled assembly materials": "S-ASSY",
   // BOM-24 has no manufacturer of record. It routes through the regional
   // distributor that supplies it, which is all we actually know about it.
-  "—": "S-DIST-C",
+  "n/a": "S-DIST-C",
 };
 
 // ---- ring 3: sites (30) ------------------------------------------

@@ -65,9 +65,9 @@ export function StatusBar({ onOpenPalette }: { onOpenPalette: () => void }) {
       <button
         type="button"
         onClick={reset}
-        title="Reset demo — clear loaded BOM and return to entry"
+        title="Reset demo: clear loaded BOM and return to entry"
         className="label flex items-center gap-1 px-3 transition-colors hover:text-primary"
-        aria-label="Reset demo — clear loaded BOM and return to entry"
+        aria-label="Reset demo: clear loaded BOM and return to entry"
       >
         <span aria-hidden>↺</span>
         <span>RESET</span>

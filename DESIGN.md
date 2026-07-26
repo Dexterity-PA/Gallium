@@ -1,8 +1,8 @@
-# DESIGN.md — Gallium Visual System
+# DESIGN.md: Gallium Visual System
 
 Read this before writing any UI. If any other document conflicts with this one on visual matters, this one wins.
 
-Also read `/mnt/skills/public/frontend-design/SKILL.md` before starting. Apply its thinking about intentional, non-templated design — but the density constraints below are load-bearing and override any suggestion to loosen, soften, or add breathing room.
+Also read `/mnt/skills/public/frontend-design/SKILL.md` before starting. Apply its thinking about intentional, non-templated design, but note that the density constraints below are load-bearing and override any suggestion to loosen, soften, or add breathing room.
 
 ---
 
@@ -97,7 +97,7 @@ Every number in the application uses `font-variant-numeric: tabular-nums`. Set i
 * { font-variant-numeric: tabular-nums; }
 ```
 
-Decimals align in columns. Currency uses no cents above $1,000. Percentages always show one decimal place. Large numbers use thin-space or comma separators consistently — pick comma, use it everywhere.
+Decimals align in columns. Currency uses no cents above $1,000. Percentages always show one decimal place. Large numbers use thin-space or comma separators consistently: pick comma, use it everywhere.
 
 ---
 
@@ -112,7 +112,7 @@ Decimals align in columns. Currency uses no cents above $1,000. Percentages alwa
 Every region of the screen is a panel:
 - Background `--bg-panel`
 - Border `1px solid var(--border)`
-- Radius `0px` (2px maximum, only if something genuinely needs it — default to 0)
+- Radius `0px` (2px maximum, only if something genuinely needs it; default to 0)
 - No shadow, no glow, no outline
 - Internal padding 12px, never more than 16px
 - Top-left: uppercase 10px label
@@ -149,7 +149,7 @@ Nothing exceeds 300ms except the scripted graph sequence, which is choreographed
 - One thing animates at a time. Simultaneous motion in multiple panels reads as noise.
 
 ### The scanline
-When a panel recalculates, a single 1px `--amber` horizontal line sweeps top to bottom across it at 12% opacity over 600ms, then disappears. Only one panel at a time. This is the app's signature motion — used sparingly, it reads as computation happening.
+When a panel recalculates, a single 1px `--amber` horizontal line sweeps top to bottom across it at 12% opacity over 600ms, then disappears. Only one panel at a time. This is the app's signature motion. Used sparingly, it reads as computation happening.
 
 ---
 
@@ -185,7 +185,7 @@ These are what separate "dark theme" from "terminal." Each is cheap; together th
 - No filled buttons, no rounded buttons, no icons inside buttons unless the icon is a character glyph
 
 ### Drawer
-Slides from right, 420px wide, 240ms. Background `--bg-panel`, 1px left border `--border-hot`. Content is not centered or padded generously — same 12px panel padding as everything else.
+Slides from right, 420px wide, 240ms. Background `--bg-panel`, 1px left border `--border-hot`. Content is not centered or padded generously; it uses the same 12px panel padding as everything else.
 
 ### Modal
 The only element in the application permitted a shadow: `0 24px 64px rgba(0,0,0,0.7)`. Centered, 1px `--border-hot` border, `--bg-elevated` background.
@@ -220,7 +220,7 @@ When choosing between prettier and denser: choose denser.
 Fixed, bottom-right, above the ticker, 9px, `--text-lo`, always present on every screen:
 
 ```
-REPRESENTATIVE DATA — CUSTOMER IDENTIFIERS ANONYMIZED
+REPRESENTATIVE DATA · CUSTOMER IDENTIFIERS ANONYMIZED
 ```
 
 This is not a design element to be tuned or removed for visual balance. It stays.

@@ -4,13 +4,13 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { LoadedSummary, ResolutionSummary } from "@/lib/uploadResolution";
 import { toLoadedSummary } from "@/lib/uploadResolution";
 
-// Whether a BOM has been "loaded" (sample or uploaded) — the gate between the
+// Whether a BOM has been "loaded" (sample or uploaded). The gate between the
 // entry/resolution flow and the real dashboard (see AppShell). Backed by
 // localStorage rather than a real backend, so:
 //   - the dashboard survives a hard reload once loaded
 //   - RESET can clear it and bounce back to "/" without a full page reload
 // `hydrated` distinguishes "we don't know yet" (first paint, before the
-// client can read localStorage) from "known to be false" — AppShell needs
+// client can read localStorage) from "known to be false". AppShell needs
 // that distinction to avoid flashing the wrong thing.
 
 const STORAGE_KEY = "gallium.demoState.v1";
@@ -44,7 +44,7 @@ export function DemoStateProvider({ children }: { children: React.ReactNode }) {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) setState(JSON.parse(raw) as StoredState);
     } catch {
-      // corrupt or unavailable storage — fall back to the entry screen
+      // corrupt or unavailable storage: fall back to the entry screen
     }
     setHydrated(true);
   }, []);

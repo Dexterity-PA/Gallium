@@ -3,7 +3,7 @@ import { BOM } from "@/lib/data/bom";
 import { ACTIONS, OBSERVED_RESOLVABLE } from "@/lib/data/actions";
 
 /* ============================================================
-   RESOLVE — rollup math & derived coverage helpers
+   RESOLVE: rollup math & derived coverage helpers
    ------------------------------------------------------------
    The canonical action → BOM-line mapping now lives in
    lib/data/actions.ts as `Action.covers`. This module holds the
@@ -16,15 +16,15 @@ import { ACTIONS, OBSERVED_RESOLVABLE } from "@/lib/data/actions";
 
    Coverage, line by line (same assignment as before):
 
-   ACT-SUBSTITUTE  BOM-07/08/09 — the isolated gate-drive network
+   ACT-SUBSTITUTE  BOM-07/08/09, the isolated gate-drive network
      (the three tier-2 ERP-blind Kaohsiung catches). 3 lines.
    ACT-EXPEDITE    BOM-01..04 (backend A&T, finished goods on hand)
      plus BOM-10/11 (Taipei-distribution, fly out of the same
      airport). 6 lines.
-   ACT-BUYAHEAD    BOM-05/06 — the DC-link capacitor bank. 2 lines.
+   ACT-BUYAHEAD    BOM-05/06, the DC-link capacitor bank. 2 lines.
 
    Residual: BOM-12/13/14 are MODELED tier-3. No action claims
-   them. They stay FLAGGED for the whole sequence — the product
+   them. They stay FLAGGED for the whole sequence: the product
    does not resolve exposure it merely inferred.
    ============================================================ */
 
@@ -130,7 +130,7 @@ export const ACTION_ROLLUP: Record<string, ActionRollup> = {
     daysGained: 11 * 7,
   },
   // Compliance action: recovers 2 lines but adds no cost/capital/schedule/days
-  // — filing the affiliates-screening packet doesn't move the logistics halt
+  // Filing the affiliates-screening packet doesn't move the logistics halt
   // date. Present (not skipped) so its 2 covered lines DO count in the rollup's
   // line total (13 = 11 logistics + 2 compliance).
   "ACT-LICENSE": {
@@ -160,7 +160,7 @@ export const EMPTY_ROLLUP: Rollup = {
 export function rollup(actionedIds: ReadonlySet<string>): Rollup {
   return ACTIONS.filter((a) => actionedIds.has(a.id)).reduce<Rollup>(
     (acc, a) => {
-      // Compliance actions (e.g. ACT-LICENSE) have no ACTION_ROLLUP entry — they
+      // Compliance actions (e.g. ACT-LICENSE) have no ACTION_ROLLUP entry, so they
       // sit outside the logistics recovery accounting. Skip so a 0-line, 0-cost
       // action can be actioned without dereferencing undefined and crashing.
       const r = ACTION_ROLLUP[a.id];
@@ -186,7 +186,7 @@ export function money(n: number): string {
 
 /* ---- dev-time guard against silent drift -------------------
    Post-reconciliation the actions recover the OBSERVED_RESOLVABLE lines:
-   6 + 3 + 2 (logistics) + 2 (compliance) = 13, derived — no magic number.
+   6 + 3 + 2 (logistics) + 2 (compliance) = 13, derived, with no magic number.
    Every covered line must be provenance OBSERVED and be resolvable, i.e.
    either quarantine-EXPOSED (logistics) or ownership-FLAGGED (compliance);
    a MODELED tier-3 line must never be covered. No line may be double-covered,
@@ -204,7 +204,7 @@ export const COVERAGE_ASSERTIONS = (() => {
   };
   const assertions = {
     covered: covered.length, // 13
-    unique: new Set(covered).size, // 13 — no line claimed twice
+    unique: new Set(covered).size, // 13, no line claimed twice
     expected: OBSERVED_RESOLVABLE, // 13, derived from BOM
     countsMatch: ACTIONS.every(
       (a) => (ACTION_COVERAGE[a.id] ?? []).length === a.recovers
@@ -218,7 +218,7 @@ export const COVERAGE_ASSERTIONS = (() => {
     !assertions.allResolvable
   ) {
     throw new Error(
-      `RESOLVE coverage drift — expected ${OBSERVED_RESOLVABLE} OBSERVED RESOLVABLE lines (11 logistics + 2 compliance), no double-cover: ${JSON.stringify(
+      `RESOLVE coverage drift: expected ${OBSERVED_RESOLVABLE} OBSERVED RESOLVABLE lines (11 logistics + 2 compliance), no double-cover: ${JSON.stringify(
         assertions
       )}`
     );

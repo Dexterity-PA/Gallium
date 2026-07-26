@@ -12,11 +12,11 @@ import {
 // The left rail of RESOLVE: all 16 lines requiring action, one --row-h row
 // each at --fs-body, no wrapping. Three sections that sum to the reconciled
 // ledger:
-//   OBSERVED (11)   quarantine-exposed logistics lines — --critical until
+//   OBSERVED (11)   quarantine-exposed logistics lines, --critical until
 //                   AIR/ALT/BUY fires, then --focus RESOLVED.
-//   COMPLIANCE (2)  ownership-FLAGGED lines (logistics-CLEAR) — flip to
+//   COMPLIANCE (2)  ownership-FLAGGED lines (logistics-CLEAR), flip to
 //                   RESOLVED as the LICENSE action fires. A separate axis.
-//   MODELED (3)     inferred tier-3 lines — stay --modeled, FLAGGED forever.
+//   MODELED (3)     inferred tier-3 lines, stay --modeled, FLAGGED forever.
 // The bar groups the first two as "13 OBSERVED RESOLVED"; the third as
 // "3 MODELED FLAGGED". --modeled is reserved for MODELED and nothing else.
 //
@@ -68,7 +68,7 @@ function LineRow({
 }) {
   const modeled = line.provenance === "MODELED";
   // Compliance line: ownership-FLAGGED but NOT quarantine-exposed. Distinct
-  // from a logistics EXPOSED line — reads FLAGGED until the LICENSE action
+  // from a logistics EXPOSED line, reads FLAGGED until the LICENSE action
   // screens it, then RESOLVED. Never --modeled (that means inferred).
   const compliance = line.ownership === "FLAGGED" && line.status !== "EXPOSED";
   const actionId = LINE_TO_ACTION[line.id];
@@ -141,7 +141,7 @@ function LineRow({
           transition: "color 200ms ease-out",
         }}
       >
-        {actionId ? ACTION_CODE[actionId] : "—"}
+        {actionId ? ACTION_CODE[actionId] : "n/a"}
       </span>
       <span
         className="text-right text-label"
@@ -176,13 +176,13 @@ export function ExposedLines({
     <div className="flex h-full min-h-0 flex-col">
       <HeadRow />
       <div className="min-h-0 flex-1 overflow-auto">
-        <SectionRow label="Observed — logistics" count={OBSERVED_LINES.length} />
+        <SectionRow label="Observed · logistics" count={OBSERVED_LINES.length} />
         {OBSERVED_LINES.map(rowFor)}
 
-        <SectionRow label="Compliance — affiliates" count={COMPLIANCE_LINES.length} />
+        <SectionRow label="Compliance · affiliates" count={COMPLIANCE_LINES.length} />
         {COMPLIANCE_LINES.map(rowFor)}
 
-        <SectionRow label="Modeled — inferred" count={MODELED_LINES.length} />
+        <SectionRow label="Modeled · inferred" count={MODELED_LINES.length} />
         {MODELED_LINES.map((line) => (
           <LineRow key={line.id} line={line} resolved={false} highlighted={false} />
         ))}

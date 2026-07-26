@@ -27,7 +27,7 @@ const SEED_LOG: LogEntry[] = [
     key: "seed-event",
     t: "14:31:58",
     tag: "EVT-2026-0722-KHH",
-    text: "MARITIME QUARANTINE — KAOHSIUNG · 14 BOM LINES EXPOSED",
+    text: "MARITIME QUARANTINE: KAOHSIUNG · 14 BOM LINES EXPOSED",
     tone: "var(--critical)",
   },
   {
@@ -87,7 +87,7 @@ export default function ResolvePage() {
         background: "var(--rule)",
       }}
     >
-      {/* LEFT — every exposed line, live */}
+      {/* LEFT: every exposed line, live */}
       <Panel
         label="Exposed Lines"
         corner={`${resolved}/${LINES_REQUIRING_ACTION} RESOLVED`}
@@ -98,9 +98,9 @@ export default function ResolvePage() {
         <ExposedLines actionedIds={actioned} hoveredActionId={hovered} />
       </Panel>
 
-      {/* CENTRE — resolution state, the three actions, the log */}
+      {/* CENTRE: resolution state, the three actions, the log */}
       <Panel
-        label={`Resolve — ${CUSTOMER.focusProduct.line} exposure`}
+        label={`Resolve · ${CUSTOMER.focusProduct.line} exposure`}
         corner={`${ACTIONS.length} ACTIONS · ${LINES_REQUIRING_ACTION} LINES`}
         className="h-full"
         noPad
@@ -108,7 +108,7 @@ export default function ResolvePage() {
       >
         <ResolutionBar resolved={resolved} />
 
-        {/* action rows run edge to edge and separate on their own hairlines —
+        {/* action rows run edge to edge and separate on their own hairlines,
             no gap, no surrounding pad, so nothing reads as a stack of cards */}
         <div className="min-h-0 flex-1 overflow-auto">
           <div className="flex flex-col">
@@ -127,7 +127,7 @@ export default function ResolvePage() {
         <ResolutionLog entries={log} />
       </Panel>
 
-      {/* RIGHT — live rollup, same metric treatment as RADAR */}
+      {/* RIGHT: live rollup, same metric treatment as RADAR */}
       <Panel
         label="Action Impact"
         corner="Q4 2026"

@@ -21,7 +21,7 @@ export interface ResolutionSummary {
   rows: ResolvedRow[];
 }
 
-// Lightweight variant persisted across reloads (see useDemoState) — the
+// Lightweight variant persisted across reloads (see useDemoState). The
 // per-row detail only matters during the resolution screen's own run, not
 // after a BOM is "loaded".
 export type LoadedSummary = Omit<ResolutionSummary, "rows">;
@@ -32,13 +32,13 @@ export function toLoadedSummary(summary: ResolutionSummary): LoadedSummary {
 }
 
 // EXPOSED here means "this line's real assembly/test site sits inside the
-// active quarantine zone" — i.e. the BOM line's own `status` field, not a
+// active quarantine zone", i.e. the BOM line's own `status` field, not a
 // guess. Catalog parts that aren't on the customer's actual BOM (see
 // lib/data/components.ts CATALOG_EXTRAS) never count as exposed: exposure is
 // a property of what you build, not of the parts network in general.
 const BOM_STATUS_BY_MPN = new Map(BOM.map((b) => [b.mpn.toUpperCase(), b.status]));
 
-// Resolves every row against the real parts network (resolveMpn — the same
+// Resolves every row against the real parts network (resolveMpn, the same
 // accessor the rest of the app uses). Never fabricates a match: a row whose
 // MPN isn't in COMPONENTS comes back unresolved, full stop.
 export function resolveUploadRows(

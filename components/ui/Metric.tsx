@@ -1,4 +1,4 @@
-// Large metric readout (DESIGN.md §3 type scale). Presentational — callers
+// Large metric readout (DESIGN.md §3 type scale). Presentational: callers
 // pass an already-formatted (and, where wanted, already-tweened) value node.
 //
 // Label / value / sub is the canonical label-row treatment: the label is
@@ -31,7 +31,7 @@ export function Metric({
         style={{
           color: tone,
           // `lg` has no token: the scale steps from --fs-value (13px) straight
-          // to --fs-hero (34px). Left literal rather than invented — RADAR and
+          // to --fs-hero (34px). Left literal rather than invented, because RADAR and
           // RESOLVE use `xl` only; `lg` survives for the entry screen.
           fontSize: size === "xl" ? "var(--fs-hero)" : "20px",
           fontWeight: 500,

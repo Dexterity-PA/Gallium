@@ -4,18 +4,18 @@ import { BOM } from "@/lib/data/bom";
 // Bottom ticker (DATA.md §7).
 //
 // The old list was thirteen rows of red up-triangle, which is not what a
-// market-data strip looks like — it is what a mock of one looks like. Most
+// market-data strip looks like. It is what a mock of one looks like. Most
 // lines on a real ticker are unchanged at any given moment; a few move against
 // you, and one or two move in your favour. So this list is roughly half FLAT
-// (a level, not a move — no arrow at all), two green, and four red.
+// (a level, not a move, so no arrow at all), two green, and four red.
 //
 // TickerItem.dir (lib/types.ts) now includes "flat", so TICKER_ITEMS below is
-// a plain, fully-typed TickerItem[] — components/chrome/Ticker.tsx reads it
+// a plain, fully-typed TickerItem[]; components/chrome/Ticker.tsx reads it
 // directly with no coercion layer.
 
 // Lead-time rows read the real BOM rather than repeating its numbers, so the
 // strip and the EXPOSURE table can never disagree. A line whose quote has not
-// moved (delta 0) is flat by construction — the data decides, not the author.
+// moved (delta 0) is flat by construction: the data decides, not the author.
 function leadTimeRow(label: string, mpn: string): TickerItem {
   const line = BOM.find((b) => b.mpn === mpn);
   if (!line) throw new Error(`ticker: no BOM line for MPN ${mpn}`);
@@ -29,12 +29,12 @@ function leadTimeRow(label: string, mpn: string): TickerItem {
 }
 
 export const TICKER_ITEMS: TickerItem[] = [
-  // Standing states, not moves — a level with an arrow on it is a lie.
+  // Standing states, not moves: a level with an arrow on it is a lie.
   { label: "KAOHSIUNG PORT", value: "QUARANTINE ACTIVE", dir: "flat", critical: true },
   { label: "AFFILIATES RULE", value: "T-110D", dir: "flat", critical: true },
 
   { label: "MATURE NODE UTIL", value: "94.2%", delta: "+0.4", dir: "up" },
-  leadTimeRow("ISO GATE DRVR LT", "ISO5852SDW"), // 38W +11 — the anchor spike
+  leadTimeRow("ISO GATE DRVR LT", "ISO5852SDW"), // 38W +11, the anchor spike
   leadTimeRow("MCU C2000 LT", "TMS320F28027PTT"), // quote held
   leadTimeRow("IGBT MOD 600V LT", "BM63577S-VC"), // quote held
   { label: "TW STRAIT TRANSIT", value: "+9.4D", dir: "up" },
@@ -60,7 +60,7 @@ export const TICKER_MIX_OK = (() => {
   const flat = TICKER_ITEMS.filter((i) => i.dir === "flat").length;
   const green = TICKER_ITEMS.filter((i) => i.dir === "down").length;
   if (flat * 2 < TICKER_ITEMS.length) {
-    throw new Error(`ticker: only ${flat}/${TICKER_ITEMS.length} rows are flat — expected about half`);
+    throw new Error(`ticker: only ${flat}/${TICKER_ITEMS.length} rows are flat, expected about half`);
   }
   if (green !== 2) {
     throw new Error(`ticker: expected exactly 2 favourable rows, found ${green}`);

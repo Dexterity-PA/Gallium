@@ -2,11 +2,11 @@ import type { Article } from "@/lib/types";
 import { SOURCES } from "@/lib/data/sources";
 import { BOM } from "@/lib/data/bom";
 
-// Fictional news articles — the ingest corpus (see lib/news/ingest.ts's
+// Fictional news articles: the ingest corpus (see lib/news/ingest.ts's
 // LocalArticleSource, which reads this array). Every article is
 // `fictional: true`, its `sourceIds` resolve in lib/data/sources.ts, and any
 // `relatedBomIds` resolve in lib/data/bom.ts. `relatedBomIds` is left unset on
-// most entries on purpose — it is the pre-existing curator's note, not a
+// most entries on purpose. It is the pre-existing curator's note, not a
 // contract; lib/news/classify.ts + match.ts compute matchedBomIds
 // independently and lib/news/pipeline.ts reconciles the two (see
 // ARTICLE_MATCH_RECONCILIATIONS), which is more honest than hand-filling a
@@ -26,7 +26,7 @@ The regime applies to outbound container traffic only. Air corridors serving Kao
 
 Two ocean carriers issued schedule-reliability advisories for Taiwan-origin lanes within hours of the customs bulletin, warning shippers to expect multi-day delays on any booking routed through Kaohsiung. Berth wait times at the port had already been extending in the prior 48 hours, though the cause was not publicly attributed until Wednesday's announcement.
 
-Industry contacts caution that the regime's scope and duration remain unclear, and that supply chains with backend assembly and test operations sited in the inspection zone face the most immediate exposure — a category that includes power semiconductor packaging widely used in industrial motor-drive electronics.
+Industry contacts caution that the regime's scope and duration remain unclear, and that supply chains with backend assembly and test operations sited in the inspection zone face the most immediate exposure, a category that includes power semiconductor packaging widely used in industrial motor-drive electronics.
 
 This article is fictional and produced for demonstration purposes.`,
     sourceIds: ["SRC-KHH-CUSTOMS", "SRC-PORT-KHH", "SRC-CARRIER-ADV"],
@@ -37,16 +37,16 @@ This article is fictional and produced for demonstration purposes.`,
     headline: "Affiliates-screening threshold set to resume in November",
     outlet: "Trade Compliance Daily",
     publishedAt: "2026-07-22T16:00:00Z",
-    dek: "The 50% ownership screening rule, suspended under the 2025 truce, returns Nov 10 — diligence and license obligations attach to affected suppliers.",
+    dek: "The 50% ownership screening rule, suspended under the 2025 truce, returns Nov 10, and diligence and license obligations attach to affected suppliers.",
     body: `The 50% affiliates-ownership screening threshold will resume enforcement on November 10, 2026, regulatory dockets reviewed by this outlet confirm, ending a suspension that had been in place since a bilateral trade truce reached in November 2025.
 
-Under the rule, any supplier in which a restricted entity holds a controlling or majority stake — defined as crossing the 50% ownership threshold, whether directly or through an intermediate parent — becomes subject to enhanced diligence and, in some cases, export-license requirements before affected components can ship. The rule had applied broadly before the truce suspended it; its return restores the pre-truce screening posture without modification, according to the docket language.
+Under the rule, any supplier in which a restricted entity holds a controlling or majority stake, defined as crossing the 50% ownership threshold whether directly or through an intermediate parent, becomes subject to enhanced diligence and, in some cases, export-license requirements before affected components can ship. The rule had applied broadly before the truce suspended it; its return restores the pre-truce screening posture without modification, according to the docket language.
 
 Corporate registry filings reviewed alongside the rule change show that ownership structures for a number of suppliers have shifted in the interim, meaning the set of affected relationships when screening resumes may not exactly match the set flagged before the suspension. Companies that rely on multi-tier supplier networks are being advised to re-run diligence rather than assume prior clearances still hold.
 
 The filing window ahead of the November 10 effective date is expected to be compressed. Trade compliance counsel interviewed for this piece characterized the runway as "tight but workable" for firms that start diligence now rather than waiting for the formal comment period to close.
 
-Notably, affiliates-screening exposure is independent of any logistics disruption — a supplier can be entirely unaffected by port or customs activity and still cross the ownership threshold, or vice versa.
+Notably, affiliates-screening exposure is independent of any logistics disruption. A supplier can be entirely unaffected by port or customs activity and still cross the ownership threshold, or vice versa.
 
 This article is fictional and produced for demonstration purposes.`,
     sourceIds: ["SRC-AFFIL-RULE", "SRC-CORP-REGISTRY"],
@@ -61,11 +61,11 @@ This article is fictional and produced for demonstration purposes.`,
     dek: "Spot substrate pricing rises month-over-month, pressuring deep-tier module supply that few BOMs track.",
     body: `Spot pricing for BT (bismaleimide-triazine) laminate substrate rose 2.1% month-over-month, according to market data reviewed by this outlet, as packaging capacity across the region continues to tighten.
 
-Substrate and leadframe materials sit several tiers below the components most bills of materials explicitly track, which means the pricing pressure is largely invisible to standard procurement dashboards until it surfaces as a lead-time extension or cost increase on a finished module. Power semiconductor modules — IGBT packages in particular — are disproportionately exposed, since they consume both BT substrate and specialty leadframe stock in the same assembly step.
+Substrate and leadframe materials sit several tiers below the components most bills of materials explicitly track, which means the pricing pressure is largely invisible to standard procurement dashboards until it surfaces as a lead-time extension or cost increase on a finished module. Power semiconductor modules, IGBT packages in particular, are disproportionately exposed, since they consume both BT substrate and specialty leadframe stock in the same assembly step.
 
 Sourcing analysts describe the current move as consistent with broader packaging-capacity tightness rather than a single acute event, though they note that any additional disruption to backend assembly and test capacity in the region would compound the existing pressure rather than substitute for it.
 
-Because deep-tier material supply is rarely disclosed by tier-1 suppliers, exposure at this level is typically inferred from industry structure and market signals rather than confirmed directly — a distinction procurement teams are advised to keep visible rather than treat modeled exposure as equivalent to a confirmed shortage.
+Because deep-tier material supply is rarely disclosed by tier-1 suppliers, exposure at this level is typically inferred from industry structure and market signals rather than confirmed directly, a distinction procurement teams are advised to keep visible rather than treat modeled exposure as equivalent to a confirmed shortage.
 
 This article is fictional and produced for demonstration purposes.`,
     sourceIds: ["SRC-SUBSTRATE-MKT"],
@@ -128,7 +128,7 @@ This article is fictional and produced for demonstration purposes.`,
     dek: "Quoted lead times are extending 3-5 weeks across the isolation component category, aggregated market data shows.",
     body: `Quoted lead times for optocouplers and related gate-isolation components are extending by three to five weeks industry-wide, according to aggregated market data reviewed by this outlet, continuing a trend that has been building for several quarters.
 
-Isolation components — optocouplers, isolated gate drivers, and the reinforced-isolation resistor networks that accompany them — sit in a narrow product category with relatively few qualified suppliers per design, which makes the category more sensitive to demand swings than higher-volume passives.
+Isolation components (optocouplers, isolated gate drivers, and the reinforced-isolation resistor networks that accompany them) sit in a narrow product category with relatively few qualified suppliers per design, which makes the category more sensitive to demand swings than higher-volume passives.
 
 Buyers in industrial motor-drive and power-conversion segments, where isolation parts are safety-critical and rarely substitutable without a full requalification cycle, are advised to treat the extension as a planning input now rather than a surprise at next quarter's quote.
 
@@ -144,7 +144,7 @@ This article is fictional and produced for demonstration purposes.`,
     dek: "A proposed rule affecting affiliates-ownership screening thresholds has entered public comment ahead of the November resumption.",
     body: `A proposed rule affecting affiliates-ownership screening thresholds entered its public comment period Wednesday, regulatory filings show, running in parallel with the confirmed November 10 resumption of the underlying 50% threshold screening rule reported elsewhere this week.
 
-The comment period covers implementation mechanics — filing formats, diligence documentation standards, and appeal procedures for suppliers that dispute a threshold determination — rather than the threshold itself, which is already fixed by the resumption notice. Compliance counsel note that public comment on mechanics rarely changes an effective date, so firms should not treat the open comment period as a reason to delay diligence.
+The comment period covers implementation mechanics (filing formats, diligence documentation standards, and appeal procedures for suppliers that dispute a threshold determination) rather than the threshold itself, which is already fixed by the resumption notice. Compliance counsel note that public comment on mechanics rarely changes an effective date, so firms should not treat the open comment period as a reason to delay diligence.
 
 This article is fictional and produced for demonstration purposes.`,
     sourceIds: ["SRC-AFFIL-RULE"],
@@ -185,10 +185,10 @@ This article is fictional and produced for demonstration purposes.`,
     headline: "Deep-tier substrate exposure inferred from industry structure, not yet confirmed",
     outlet: "Supply Chain Signals",
     publishedAt: "2026-07-22T14:33:00Z",
-    dek: "Network analysis suggests packaging-material supply for the region may route through the same constrained cluster — an inference, not a confirmed filing.",
+    dek: "Network analysis suggests packaging-material supply for the region may route through the same constrained cluster, an inference rather than a confirmed filing.",
     body: `Network analysis of regional packaging-material supply structure suggests that BT substrate and leadframe capacity serving Taiwan-area backend assembly may route through a narrower cluster of sub-tier suppliers than public filings alone would indicate, according to modeling reviewed by this outlet.
 
-This finding is explicitly an inference, not a confirmed filing: no supplier disclosure or customs record directly ties any specific module supply chain to the modeled cluster. It is derived from industry structure — patterns of ownership, geography, and known capacity — rather than a primary document, and should be weighted accordingly relative to directly observed sources.
+This finding is explicitly an inference, not a confirmed filing: no supplier disclosure or customs record directly ties any specific module supply chain to the modeled cluster. It is derived from industry structure (patterns of ownership, geography, and known capacity) rather than a primary document, and should be weighted accordingly relative to directly observed sources.
 
 If the inference holds, any disruption affecting backend assembly capacity in the region would plausibly extend into deep-tier packaging-material availability with a lag, rather than being contained to the assembly step alone. Procurement teams are advised to track this as a modeled watch item, not to act on it as though it were confirmed.
 
@@ -201,7 +201,7 @@ This article is fictional and produced for demonstration purposes.`,
   // A story that matters gets covered more than once, by more than one desk,
   // and the follow-ups are shorter and narrower than the original. Wiring
   // these to feed rows lives in lib/news/match.ts (EVENT_ARTICLES), which is
-  // outside this module — see the handoff note in that file's neighbourhood.
+  // outside this module; see the handoff note in that file's neighbourhood.
   {
     id: "ART-KHH-AIRFREIGHT",
     headline: "Air corridors absorb rerouted Kaohsiung cargo at a premium",
@@ -255,7 +255,7 @@ export function getArticle(id: string): Article | undefined {
   return BY_ID.get(id);
 }
 
-// Referential integrity (dev-time guard) — every Article.sourceIds and
+// Referential integrity (dev-time guard): every Article.sourceIds and
 // relatedBomIds must resolve. Mirrors the guard pattern in
 // lib/data/sources.ts / lib/data/bom.ts so a typo'd id fails at import
 // instead of silently rendering nothing.

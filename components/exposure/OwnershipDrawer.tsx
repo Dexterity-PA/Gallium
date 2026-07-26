@@ -99,7 +99,7 @@ export function OwnershipDrawer({
           {/* header */}
           <div className="flex h-row shrink-0 items-center justify-between border-b border-rule px-2">
             <span className="text-value uppercase text-primary">
-              {line.mpn} — Ownership Chain
+              {line.mpn} · Ownership Chain
             </span>
             <button
               type="button"
@@ -148,7 +148,7 @@ export function OwnershipDrawer({
                   />
                 </div>
 
-                {/* threshold-crossed alarm — FLAGGED only */}
+                {/* threshold-crossed alarm, FLAGGED only */}
                 {chain.thresholdCrossed ? (
                   <div
                     className="mb-2 pl-2"
@@ -189,7 +189,7 @@ export function OwnershipDrawer({
                     </button>
                   </div>
                 ) : (
-                  /* REVIEW — chain present, threshold not crossed */
+                  /* REVIEW: chain present, threshold not crossed */
                   <div
                     className="mb-2 pl-2"
                     style={{ borderLeft: "2px solid var(--rule-strong)" }}
@@ -213,7 +213,7 @@ export function OwnershipDrawer({
                 )}
               </>
             ) : (
-              /* CLEAR — no chain to show */
+              /* CLEAR: no chain to show */
               <div className="border-t border-rule pt-2 text-body leading-relaxed text-secondary">
                 <div className="label mb-2">
                   ● OWNERSHIP CLEAR

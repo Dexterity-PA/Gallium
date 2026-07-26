@@ -18,13 +18,19 @@ import { useCountUp } from "@/lib/hooks/useCountUp";
 import { LeadTimePressure } from "@/components/radar/LeadTimePressure";
 import { ScenarioControl } from "@/components/radar/ScenarioControl";
 
-// SCENARIO framing — every field is derived from lib/data (CUSTOMER,
+// SCENARIO framing. Every field is derived from lib/data (CUSTOMER,
 // PRIMARY_EVENT), never a literal. The headline is split into its
 // event-type and node halves; the timestamp is sliced (no Date/TZ drift).
 // This block describes the fixed, scripted Kaohsiung event and never moves
-// with the control below — it's the historical record, not the simulation.
-const EVENT_TYPE = PRIMARY_EVENT.headline.split("—")[0].trim(); // "MARITIME QUARANTINE"
-const NODE = PRIMARY_EVENT.headline.split("—").pop()!.trim(); // "KAOHSIUNG"
+// with the control below: it is the historical record, not the simulation.
+//
+// The separator is a live parse, not punctuation. Feed headlines are written
+// "EVENT TYPE: NODE" in lib/data/event.ts, and changing that separator in
+// either place alone silently empties the two fields below rather than
+// failing the build, so they move together.
+const HEADLINE_SEP = ":";
+const EVENT_TYPE = PRIMARY_EVENT.headline.split(HEADLINE_SEP)[0].trim(); // "MARITIME QUARANTINE"
+const NODE = PRIMARY_EVENT.headline.split(HEADLINE_SEP).pop()!.trim(); // "KAOHSIUNG"
 const TRIGGER_DAY = PRIMARY_EVENT.timestamp.slice(0, 10); // "2026-07-22"
 const TRIGGER_TIME = PRIMARY_EVENT.timestamp.slice(11, 16); // "14:31"
 const SCENARIO_NAME = `${CUSTOMER.focusProduct.line} × ${EVENT_TYPE}`;
@@ -51,7 +57,7 @@ function ScenarioField({
 
 export function ImpactSummary({ active }: { active: boolean }) {
   // Scenario control state. Default value is a sentinel meaning "no
-  // override" — lib/derive/impact.ts short-circuits it back to the scripted
+  // override": lib/derive/impact.ts short-circuits it back to the scripted
   // baseline (today's Kaohsiung IMPACT). Any other value runs the live BFS
   // over GRAPH_ADJACENCY from the chosen origin. See lib/data/scenario.ts.
   const [control, setControl] = useState<ScenarioControlState>(DEFAULT_SCENARIO_CONTROL);
@@ -66,8 +72,14 @@ export function ImpactSummary({ active }: { active: boolean }) {
   const { halt } = impact;
 
   return (
-    <div className="flex min-h-full flex-col gap-3 p-2">
-      {/* SCENARIO — framing header for the panel, all fields derived */}
+    // Right rail on a full-bleed screen, so this column's right edge is the
+    // window's. p-2 alone left the right-aligned figures (the scenario id, the
+    // lead-time weeks, RESET) 8px off the glass; --safe-inset holds 24px.
+    <div
+      className="flex min-h-full flex-col gap-3 p-2"
+      style={{ paddingRight: "var(--safe-inset)" }}
+    >
+      {/* SCENARIO: framing header for the panel, all fields derived */}
       <div className="shrink-0">
         <div className="flex items-baseline justify-between">
           <span className="label">
@@ -131,7 +143,7 @@ export function ImpactSummary({ active }: { active: boolean }) {
         sub={
           halt.bottleneck
             ? `${BUFFER_WEEKS * 7}D buffer − ${halt.erosionDays}D (${halt.bottleneck.mpn} ${halt.bottleneckLeadTimeWeeks}W, ${halt.overrunWeeks}W over ${BASELINE_LEAD_TIME_WEEKS}W baseline)`
-            : "no exposed lines — full buffer"
+            : "no exposed lines, full buffer"
         }
       />
       <Metric label="Tier-2 Catches" value={Math.round(catches)} tone="var(--focus)" />

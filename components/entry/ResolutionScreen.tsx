@@ -11,7 +11,7 @@ interface ResolutionScreenProps {
 }
 
 // Stage windows for the ~12s reveal. The counts themselves are never
-// fabricated — resolveUploadRows() already ran (see app/page.tsx) and
+// fabricated: resolveUploadRows() already ran (see app/page.tsx) and
 // produced the real matched/unresolved/exposed split from resolveMpn()
 // calls; this component only staggers *when* that already-computed truth is
 // revealed, so it reads as real work rather than a spinner.
@@ -30,7 +30,7 @@ function tagColor(tag: LogTag): string {
   switch (tag) {
     case "UNRESOLVED":
     case "EXPOSED":
-      // Both are the real BOM `status` field (see uploadResolution.ts) —
+      // Both are the real BOM `status` field (see uploadResolution.ts),
       // same axis StatusGlyph resolves to --critical elsewhere in the app.
       return "var(--critical)";
     default:
@@ -59,7 +59,7 @@ export function ResolutionScreen({ summary, onComplete }: ResolutionScreenProps)
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
     // A fresh ResolutionScreen instance mounts per run (see the Stage union
-    // in app/page.tsx) — summary/onComplete are stable for its lifetime.
+    // in app/page.tsx); summary/onComplete are stable for its lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -120,7 +120,7 @@ export function ResolutionScreen({ summary, onComplete }: ResolutionScreenProps)
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between text-[10px] tracking-[0.14em] text-[var(--text-dim)]">
             <span>
-              {summary.source === "sample" ? "SAMPLE BOM — MD-7200" : (summary.fileName ?? "UPLOADED FILE")}
+              {summary.source === "sample" ? "SAMPLE BOM · MD-7200" : (summary.fileName ?? "UPLOADED FILE")}
             </span>
             <span className="tabular-nums">{progressPct}%</span>
           </div>
@@ -181,14 +181,14 @@ export function ResolutionScreen({ summary, onComplete }: ResolutionScreenProps)
 
         {done ? (
           <div className="text-center text-[10px] tracking-[0.08em] text-[var(--text-dim)]">
-            {summary.unresolved} of {summary.totalRows} lines had no network match — entering
+            {summary.unresolved} of {summary.totalRows} lines had no network match, entering
             dashboard…
           </div>
         ) : null}
       </div>
 
       <div className="absolute bottom-4 text-[9px] tracking-[0.06em] text-[var(--text-dim)]">
-        FICTIONAL SCENARIO — REPRESENTATIVE DATA
+        FICTIONAL SCENARIO · REPRESENTATIVE DATA
       </div>
     </div>
   );

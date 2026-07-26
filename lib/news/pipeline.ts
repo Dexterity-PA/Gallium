@@ -7,7 +7,7 @@ export type { ArticleClassification } from "@/lib/news/classify";
 // Render stage prep: ingest → classify → match, run once at module load off
 // the local corpus (today's ArticleSource is synchronous data wrapped in a
 // resolved Promise, so classifying directly off ARTICLES keeps this module
-// load synchronous — a route-backed async source would move this into a
+// load synchronous. A route-backed async source would move this into a
 // request handler without touching classify.ts/match.ts).
 const classified = new Map<string, ArticleClassification>();
 const reconciliations = new Map<string, MatchReconciliation>();

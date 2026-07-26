@@ -4,12 +4,12 @@ import { OBSERVED_RESOLVABLE, MODELED_FLAGGED } from "@/lib/data/actions";
 
 // Honest end state (DATA §0 truth ledger): the 13 OBSERVED RESOLVABLE lines
 // (11 logistics-exposed + 2 compliance) resolve as CTAs are actioned; the 3
-// MODELED tier-3 lines are only flagged — the product cannot claim to resolve
+// MODELED tier-3 lines are only flagged: the product cannot claim to resolve
 // exposure it merely inferred. 13 + 3 = 16 segments = LINES_REQUIRING_ACTION.
 //
 // Segment order matters. The violet MODELED block sits immediately after the
 // filled green run and travels right with it, so the bar reads as one
-// continuous state with the unresolved remainder trailing — not as a stalled
+// continuous state with the unresolved remainder trailing, not as a stalled
 // loader with three orphaned segments pinned to the far end.
 type Seg = "resolved" | "modeled" | "open";
 

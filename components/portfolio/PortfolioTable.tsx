@@ -39,8 +39,18 @@ import { BAND_INSET } from "@/components/portfolio/layout";
 // left-aligned, so without it the two run together into "51 EXPOSED" and the
 // eye cannot tell which column it is reading. One --sp-5 track plus the gap
 // either side puts 40px between them.
+//
+// minmax(), not fixed px, on the four wide tracks. As pure fixed widths the
+// row demanded 56+420+100+110+170+130+16+190 = 1192px of track plus 96px of
+// gap plus 44px of band inset = 1332px, against the 1232px this route gets at
+// a 1280px window. Grid does not shrink a fixed track to fit, so the overflow
+// went out the right-hand side and STATUS ("NOT INGESTED", "supplier screen
+// only") rendered hard against the glass at 0px. Each max below is the old
+// fixed value, so nothing moves at 1512 and wider; each min is the width its
+// longest real string needs. The bar column carries minmax(0, 1fr) rather
+// than 1fr because a bare 1fr floors at min-content and will not give way.
 const GRID =
-  "56px 420px 100px 110px 1fr 170px 130px var(--sp-5) 190px";
+  "56px minmax(200px, 420px) 100px 110px minmax(0, 1fr) minmax(120px, 170px) minmax(104px, 130px) var(--sp-5) minmax(150px, 190px)";
 
 interface ColumnDef {
   label: string;
@@ -353,8 +363,16 @@ export function PortfolioTable({ rows }: { rows: PortfolioProduct[] }) {
             background: hot ? "color-mix(in srgb, var(--critical) 6%, transparent)" : "transparent",
           };
 
+          // py-1.5, not py-3. These rows are flex-1, so the padding does not
+          // set their height when there is room; it sets their MINIMUM. At
+          // 1920x1080 each row is 112px around 39px of content and the step
+          // is invisible either way. At 1280x700 the seven rows share 357px,
+          // and py-3 made each row demand 63px inside 51px, which the flex
+          // column satisfies by cropping the content rather than scrolling.
+          // The blotter is also a dense data region, so --sp-2 is the step
+          // tokens.css RULE 8 asks for here; py-3 is a framing step.
           const shared =
-            "min-h-0 flex-1 border-b border-rule pl-4 py-3 last:border-b-0";
+            "min-h-0 flex-1 border-b border-rule pl-4 py-1.5 last:border-b-0";
 
           if (isFocus) {
             return (

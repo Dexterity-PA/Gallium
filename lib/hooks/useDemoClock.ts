@@ -19,8 +19,8 @@ export interface DemoClockState {
   elapsedMs: number; // real ms since mount (for scripted arrivals)
   observed: number; // +1 every 20s
   modeled: number; // constant during the demo
-  tickerTick: number; // floor(elapsed / 4s) — drives seeded ticker walk
-  leadTick: number; // floor(elapsed / 12s) — drives lead-time bumps
+  tickerTick: number; // floor(elapsed / 4s), drives seeded ticker walk
+  leadTick: number; // floor(elapsed / 12s), drives lead-time bumps
 }
 
 const INITIAL: DemoClockState = {

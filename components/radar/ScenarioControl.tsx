@@ -12,7 +12,7 @@ import {
 
 // Compact chip-button, matching components/exposure/FilterChips.tsx exactly.
 // 1px --rule-strong at rest; --focus border and text when active, with no
-// fill either way and no radius — a chip is a rule, not a filled pill.
+// fill either way and no radius: a chip is a rule, not a filled pill.
 function Chip({
   active,
   onClick,

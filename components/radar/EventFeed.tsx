@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { FeedEvent, BomLine, Article } from "@/lib/types";
 import { BOM } from "@/lib/data/bom";
+import { FEED_EVENTS } from "@/lib/data/event";
 import {
   severityColor,
   severityGlyph,
@@ -10,6 +11,7 @@ import {
   statusGlyph,
 } from "@/components/ui/StatusGlyph";
 import { SourcePanel } from "@/components/shared/SourcePanel";
+import { getSources } from "@/lib/data/sources";
 import { articlesForHeadline } from "@/lib/news/match";
 import { ArticleModal } from "@/components/news/ArticleModal";
 
@@ -17,12 +19,29 @@ export interface FeedRow extends FeedEvent {
   key: string;
 }
 
-// Source count + confidence come straight from the data layer (never hashed):
-// `src` is the real number of provenance documents, `conf` the event's
-// ConfidenceBand value. This is the ONLY confidence the feed renders, so it is
-// always a band value (enforced by FEED_CONFIDENCE_OK in lib/data/event.ts).
-function footerMeta(ev: FeedEvent): { src: number; conf: number } {
-  return { src: ev.sourceIds.length, conf: ev.confidence };
+// Source count + confidence come straight from the data layer (never hashed).
+// `conf` is the event's ConfidenceBand value; this is the ONLY confidence the
+// feed renders, so it is always a band value (enforced by FEED_CONFIDENCE_OK
+// in lib/data/event.ts).
+//
+// `src` is labelled OUTLETS, so it must count outlets. It used to count
+// ev.sourceIds.length alone, which is the number of provenance DOCUMENTS, and
+// three rows carry no document at all (ALLOCATION NOTICE, TYPHOON ADVISORY,
+// PORT CONGESTION: channel chatter and an unattributed berth report). Those
+// rows still match a news article in lib/news/match.ts, so the row rendered
+// "SRC: 0 outlets" with a named outlet on the line directly beneath it.
+//
+// The count is the defect, not the rendering: both citation sets are real, and
+// an outlet is an outlet whether it reaches us as a filed document or as
+// published copy. So this counts DISTINCT outlets across both: the publisher
+// behind each provenance document, plus each linked article's outlet. Deduped,
+// because a document and an article can come from the same publisher and
+// citing it twice would overstate corroboration.
+function footerMeta(ev: FeedEvent, articles: Article[]): { src: number; conf: number } {
+  const outlets = new Set<string>();
+  for (const doc of getSources(ev.sourceIds)) outlets.add(doc.publisher);
+  for (const a of articles) outlets.add(a.outlet);
+  return { src: outlets.size, conf: ev.confidence };
 }
 
 // ---------------------------------------------------------------------------
@@ -31,7 +50,7 @@ function footerMeta(ev: FeedEvent): { src: number; conf: number } {
 // from EXPOSURE / RESOLVE. The two CRITICAL rows are pinned to the canonical
 // sets (14 quarantine-EXPOSED, 2 ownership-FLAGGED); the rest match on the
 // headline against real part descriptions / regions, and anything with no
-// honest match falls through to "monitoring — no lines mapped".
+// honest match falls through to "monitoring, no lines mapped".
 // ---------------------------------------------------------------------------
 
 type LineKind = "exposed" | "compliance" | "category" | "modeled" | "none";
@@ -49,10 +68,10 @@ const tokenIn = (s: string | null | undefined, tok: string) =>
 function eventLines(ev: FeedEvent): EventLines {
   switch (ev.head) {
     // ---- the two CRITICAL rows: canonical sets ----
-    case "MARITIME QUARANTINE — KAOHSIUNG":
+    case "MARITIME QUARANTINE: KAOHSIUNG":
       // every quarantine-exposed line (status === "EXPOSED") → 14
       return { kind: "exposed", label: "BOM LINES", lines: EXPOSED };
-    case "OWNERSHIP RULE — AFFILIATES SCREENING RETURNS":
+    case "OWNERSHIP RULE: AFFILIATES SCREENING RETURNS":
       // the affiliates-screening threshold crossers (ownership === "FLAGGED") → 2
       return {
         kind: "compliance",
@@ -61,14 +80,14 @@ function eventLines(ev: FeedEvent): EventLines {
       };
 
     // ---- logistics precursors: geographic subsets of the 14 ----
-    case "PORT CONGESTION — KAOHSIUNG":
+    case "PORT CONGESTION: KAOHSIUNG":
       // exposed lines whose real exposure sits at the Kaohsiung node → 8
       return {
         kind: "exposed",
         label: "KAOHSIUNG LINES",
         lines: EXPOSED.filter((b) => tokenIn(b.actualExposure, "KAOHSIUNG")),
       };
-    case "CARRIER ADVISORY — TW ROUTES":
+    case "CARRIER ADVISORY: TW ROUTES":
       // exposed lines routed through Taipei distribution → 4
       return {
         kind: "exposed",
@@ -77,7 +96,7 @@ function eventLines(ev: FeedEvent): EventLines {
       };
 
     // ---- category signals: keyword match on real descriptions ----
-    case "LEAD TIME EXTENSION — OPTOCOUPLERS":
+    case "LEAD TIME EXTENSION: OPTOCOUPLERS":
       // body scopes it to the isolation component category → 5
       return {
         kind: "category",
@@ -86,7 +105,7 @@ function eventLines(ev: FeedEvent): EventLines {
           /optocoupler|isolat|gate/i.test(b.description),
         ),
       };
-    case "ALLOCATION NOTICE — POWER DISCRETES":
+    case "ALLOCATION NOTICE: POWER DISCRETES":
       // exposed power-stage discretes → 2. Isolation parts are excluded first
       // (mirrors LeadTimePressure's ordered rules) so the "Isolated IGBT gate
       // driver" stays gate-drive, not a power discrete.
@@ -99,7 +118,7 @@ function eventLines(ev: FeedEvent): EventLines {
             !/optocoupler|isolat|gate|transformer driver/i.test(b.description),
         ),
       };
-    case "PRICE MOVEMENT — SUBSTRATE":
+    case "PRICE MOVEMENT: SUBSTRATE":
       // the modeled tier-3 substrate line the spot move touches → 1 (MODELED)
       return {
         kind: "modeled",
@@ -108,7 +127,7 @@ function eventLines(ev: FeedEvent): EventLines {
       };
 
     // ---- compliance precursor: the whole screening universe ----
-    case "EXPORT RULE — COMMENT PERIOD OPENS":
+    case "EXPORT RULE: COMMENT PERIOD OPENS":
       // proposed rule → every line under screening (ownership !== "CLEAR") → 7
       return {
         kind: "compliance",
@@ -122,6 +141,42 @@ function eventLines(ev: FeedEvent): EventLines {
   }
 }
 
+// GUARD. The case labels above are literal string joins against the `head`
+// values in lib/data/event.ts. Renaming a headline there without renaming it
+// here does not fail the build and does not throw: every row simply falls
+// through to `default` and reports "monitoring, no lines mapped", which looks
+// like a design decision rather than a break. That is exactly what happened
+// when the headline separator moved from an em dash to a colon.
+//
+// So assert the outcome rather than re-listing the labels (a second list would
+// be its own drift): the two canonical rows must still resolve to the full
+// EXPOSED set and to the ownership-FLAGGED set.
+export const EVENT_LINE_MAP_OK = (() => {
+  const problems: string[] = [];
+  const primary = FEED_EVENTS.find((e) => e.isPrimary);
+  if (!primary) {
+    problems.push("no FEED_EVENTS row is marked isPrimary");
+  } else if (eventLines(primary).lines.length !== EXPOSED.length) {
+    problems.push(
+      `primary row "${primary.head}" maps to ${eventLines(primary).lines.length} lines, expected ${EXPOSED.length}`
+    );
+  }
+  const flagged = BOM.filter((b) => b.ownership === "FLAGGED").length;
+  const compliance = FEED_EVENTS.find((e) => e.head.startsWith("OWNERSHIP RULE"));
+  if (compliance && eventLines(compliance).lines.length !== flagged) {
+    problems.push(
+      `compliance row maps to ${eventLines(compliance).lines.length} lines, expected ${flagged}`
+    );
+  }
+  if (problems.length) {
+    const msg = `EventFeed: headline-to-BOM join is broken (${problems.join("; ")})`;
+    if (process.env.NODE_ENV !== "production") throw new Error(msg);
+    console.error(msg);
+    return false;
+  }
+  return true;
+})();
+
 // The lead-count tone: red for logistics/compliance exposure, violet only when
 // the touched line is MODELED data, muted when nothing is mapped.
 function countTone(el: EventLines): string {
@@ -131,7 +186,7 @@ function countTone(el: EventLines): string {
 }
 
 // Per-line glyph/tone. Compliance rows read on the ownership axis (red/amber),
-// logistics rows on the status axis — and MODELED provenance overrides to
+// logistics rows on the status axis. MODELED provenance overrides to
 // violet so the confidence layer stays reserved (DESIGN §2).
 function lineTone(line: BomLine, kind: LineKind): string {
   if (kind === "compliance") {
@@ -169,15 +224,20 @@ function Row({
 }) {
   // onToggle is fired by the row click; the parent both expands the row AND
   // flies the map to this event's affected node (see EventFeed.onEventClick).
-  const { src, conf } = footerMeta(ev);
   const el = eventLines(ev);
-  // Provenance drill-in — additive, local to this row; does not affect the
+  // Provenance drill-in: additive, local to this row; does not affect the
   // row's own expand/collapse state.
   const [srcOpen, setSrcOpen] = useState(false);
-  // Article drill-in (news pipeline) — additive, local to this row. Which
+  // Article drill-in (news pipeline), additive and local to this row. Which
   // articles back this row is computed independently in lib/news/match.ts
   // (keyword-matched on ev.head), not derived from eventLines/el above.
+  // Resolved before footerMeta because the outlet count spans both sets.
   const articles = articlesForHeadline(ev.head);
+  const { src, conf } = footerMeta(ev, articles);
+  // SourcePanel renders nothing when a row has no provenance documents, so on
+  // those rows the drill-in is the article chip below, not this control. Left
+  // enabled it would be a click that silently does nothing.
+  const hasDocs = ev.sourceIds.length > 0;
   const [openArticle, setOpenArticle] = useState<Article | null>(null);
 
   const rowCls = [
@@ -246,15 +306,18 @@ function Row({
           className="mt-2 border-t border-rule pt-1.5"
           style={{ animation: "row-slide-in 180ms ease-out" }}
         >
-          {/* provenance — reuses footerMeta so the numbers match the collapsed
+          {/* provenance: reuses footerMeta so the numbers match the collapsed
               footer exactly (ownership stays 2/97, quarantine 3/94) */}
           <button
             type="button"
+            disabled={!hasDocs}
             onClick={(e) => {
               e.stopPropagation();
               setSrcOpen(true);
             }}
-            className="label flex w-full items-center justify-between transition-opacity hover:opacity-70"
+            className={`label flex w-full items-center justify-between ${
+              hasDocs ? "transition-opacity hover:opacity-70" : "cursor-default"
+            }`}
           >
             <span>PROVENANCE</span>
             <span className="tabular-nums text-secondary">
@@ -263,7 +326,7 @@ function Row({
           </button>
 
           {el.kind === "none" ? (
-            <div className="label mt-2">MONITORING — NO BOM LINES MAPPED</div>
+            <div className="label mt-2">MONITORING · NO BOM LINES MAPPED</div>
           ) : (
             <div className="mt-2">
               <div className="flex items-baseline gap-2">
@@ -302,11 +365,14 @@ function Row({
       ) : (
         <button
           type="button"
+          disabled={!hasDocs}
           onClick={(e) => {
             e.stopPropagation();
             setSrcOpen(true);
           }}
-          className="label mt-1 block text-left transition-opacity hover:opacity-70"
+          className={`label mt-1 block text-left ${
+            hasDocs ? "transition-opacity hover:opacity-70" : "cursor-default"
+          }`}
         >
           SRC: {src} outlet{src === 1 ? "" : "s"} · CONF {conf}%
           {el.kind === "none" ? " · MONITORING" : ` · ${el.lines.length} LN`}
@@ -318,7 +384,7 @@ function Row({
         context={ev.head}
       />
 
-      {/* article drill-in — additive, new element; does not touch the
+      {/* article drill-in: additive, new element; does not touch the
           PROVENANCE / SRC lines above (those are owned elsewhere). */}
       {articles.length > 0 ? (
         <div

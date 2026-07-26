@@ -1,7 +1,7 @@
 // Pure, deterministic PRNG (no React, no "use client") so it is safe to import
 // from data modules that may evaluate during SSR.
 
-/** mulberry32 — small, fast, deterministic PRNG. Floats in [0, 1). */
+/** mulberry32: small, fast, deterministic PRNG. Floats in [0, 1). */
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return function () {

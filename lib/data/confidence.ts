@@ -4,7 +4,7 @@ import type { Provenance } from "@/lib/types";
 //
 // History, because the pendulum has swung twice here. The original data layer
 // sprinkled ad-hoc percentages (94%, 97%, 66%…) that implied a measurement we
-// do not have. The fix was to collapse each band to a single canonical value —
+// do not have. The fix was to collapse each band to a single canonical value,
 // which removed the false precision but replaced it with a worse tell: every
 // feed row read CONF 90%, every observed BOM line read 100%, and a screen full
 // of identical numbers is the single loudest "this data was generated" signal
@@ -14,7 +14,7 @@ import type { Provenance } from "@/lib/types";
 // band still carries the meaning (how corroborated is this?); the value inside
 // the band carries the texture (how corroborated is THIS one, specifically?).
 // The guard below still refuses anything outside the ranges, so the bands are
-// as load-bearing as they were — there is just no longer one number per band.
+// as load-bearing as they were; there is just no longer one number per band.
 //
 // Two provenance classes, five bands:
 //   OBSERVED  CONFIRMED     93–99  first-party confirmed (ERP / procurement / physical)
@@ -25,7 +25,7 @@ import type { Provenance } from "@/lib/types";
 //
 // 90 and 100 are FORBIDDEN outright. They are the two values a generator
 // reaches for, they read as placeholders rather than measurements, and both
-// sit inside otherwise-legal ranges — so they get an explicit veto instead of
+// sit inside otherwise-legal ranges, so they get an explicit veto instead of
 // relying on authors to avoid them.
 
 export type ConfidenceBand =
@@ -52,7 +52,7 @@ export const CONFIDENCE_RANGE: Record<ConfidenceBand, BandRange> = {
 // Values that may never appear on screen, in any band. See the note above.
 export const FORBIDDEN_CONFIDENCE = [90, 100];
 
-// Representative value per band — the number to reach for when a record has no
+// Representative value per band: the number to reach for when a record has no
 // reason to differ from its band's centre (and the value lib/news/classify.ts
 // assigns to a freshly classified article). Deliberately NOT round: these are
 // mid-band picks, not band definitions. Prefer an authored per-record value
@@ -102,7 +102,7 @@ export function isConfidenceValue(v: number, p: Provenance): boolean {
   return !!band && CONFIDENCE_RANGE[band].provenance === p;
 }
 
-// Nudge a value off a forbidden number, downward — 90 → 89, 100 → 99. Down
+// Nudge a value off a forbidden number, downward: 90 → 89, 100 → 99. Down
 // rather than up so a nudge never inflates a claim.
 function unforbid(v: number): number {
   return isForbidden(v) ? v - 1 : v;
@@ -120,7 +120,7 @@ export function snapConfidence(v: number, p: Provenance): number {
 }
 
 // Throwing guard for the data modules: a confidence outside its provenance's
-// bands — or sitting on a forbidden value — is a data-layer bug and should
+// bands, or sitting on a forbidden value, is a data-layer bug and should
 // fail at import.
 export function assertBand(v: number, p: Provenance, where: string): number {
   if (isForbidden(v)) {
@@ -139,7 +139,7 @@ export function assertBand(v: number, p: Provenance, where: string): number {
 
 // Provenance-agnostic variant: the value must land in SOME band and must not
 // be forbidden. Used by the event feed, where a row's confidence reflects how
-// corroborated that specific signal is rather than a fixed provenance class —
+// corroborated that specific signal is rather than a fixed provenance class,
 // an unattributed early report legitimately reads in the MODELED range even
 // though the feed itself is an observation stream.
 export function assertConfidence(v: number, where: string): number {
@@ -155,7 +155,7 @@ export function assertConfidence(v: number, where: string): number {
 }
 
 // The anti-uniformity guard. A list rendered in order must not repeat a
-// confidence in consecutive positions — that adjacency is what reads as
+// confidence in consecutive positions, because that adjacency is what reads as
 // generated, far more than the values themselves do.
 export function assertNoAdjacentRepeats(values: number[], where: string): true {
   for (let i = 1; i < values.length; i++) {

@@ -53,7 +53,7 @@ function LeadTimeSparkline({ line }: { line: BomLine }) {
   const y = (v: number) =>
     padTop + (H - padTop - padBot) * (1 - (v - min) / span);
 
-  // Rising lead time is bad (red); falling is good (green); flat is neutral —
+  // Rising lead time is bad (red); falling is good (green); flat is neutral,
   // matching how the table and part-meta already render leadTimeDelta.
   const trend =
     delta > 0 ? "var(--critical)" : delta < 0 ? "var(--text-secondary)" : "var(--text-secondary)";
@@ -103,7 +103,7 @@ function LeadTimeSparkline({ line }: { line: BomLine }) {
           opacity={0.5}
           vectorEffect="non-scaling-stroke"
         />
-        {/* elbow — where the recent move begins */}
+        {/* elbow: where the recent move begins */}
         <line
           x1={elbowX}
           x2={elbowX}
@@ -195,12 +195,19 @@ function AlternateRow({ alt }: { alt: Alternate }) {
           {alt.verdict === "TRUE_ESCAPE" ? "✓" : "✕"} {VERDICT_LABEL[alt.verdict]}
         </span>
       </div>
-      {alt.collidingNode ? (
-        <div className="mt-1 text-label text-dim">
-          via <span className="text-secondary">{alt.collidingNode}</span> — recovers{" "}
-          {alt.recoveredLines} line{alt.recoveredLines === 1 ? "" : "s"}
-        </div>
-      ) : null}
+      {/* The recovered count renders for EVERY alternate; only the "via" clause
+          is conditional. It used to hang off collidingNode, which is null for a
+          true escape precisely because nothing collides, so the one candidate
+          that actually recovers a line was the one that never said so, while
+          the candidate recovering nothing spelled out its zero. */}
+      <div className="mt-1 text-label text-dim">
+        {alt.collidingNode ? (
+          <>
+            via <span className="text-secondary">{alt.collidingNode}</span>,{" "}
+          </>
+        ) : null}
+        recovers {alt.recoveredLines} line{alt.recoveredLines === 1 ? "" : "s"}
+      </div>
     </div>
   );
 }
@@ -222,7 +229,7 @@ function Alternates({ line }: { line: BomLine }) {
       ))}
       <div className="mt-2 space-y-1 text-label leading-relaxed text-dim">
         <p>
-          Candidate substitutes — not on-hand inventory. Verdict is the
+          Candidate substitutes, not on-hand inventory. Verdict is the
           candidate&apos;s own supply path checked against the affected radius;
           substitution requires requalification.
         </p>
@@ -248,7 +255,7 @@ export function PartDrawer({
     return () => window.removeEventListener("keydown", onKey);
   }, [line, onClose]);
 
-  // Provenance drill-in — the money-shot click path: EXPOSURE row → this
+  // Provenance drill-in. The money-shot click path: EXPOSURE row → this
   // drawer → the Kaohsiung backend-A&T import record. Reset during render
   // (not in an effect) whenever the drawer's line changes, so it never
   // reopens stale on a new selection.
@@ -273,7 +280,7 @@ export function PartDrawer({
           {/* header */}
           <div className="flex h-row shrink-0 items-center justify-between border-b border-rule px-2">
             <span className="text-value uppercase text-primary">
-              {line.mpn} — Supply Path
+              {line.mpn} · Supply Path
             </span>
             <button
               type="button"
@@ -321,7 +328,7 @@ export function PartDrawer({
               </div>
             ) : null}
 
-            {/* ERP-blind warning — the single most important text in the
+            {/* ERP-blind warning: the single most important text in the
                 build. A rule, not a box: it reads off a 2px --critical left
                 edge with no fill, so the drawer stays one flat plane. */}
             {line.erpBlind ? (

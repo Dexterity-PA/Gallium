@@ -1,4 +1,4 @@
-# DATA.md — Gallium Mock Dataset
+# DATA.md: Gallium Mock Dataset
 
 All data in this application is synthetic or representative. No real customer is depicted. Manufacturer and part families are real and publicly documented; the mapping of specific parts to specific customers, quantities, exposures, and dollar figures is invented for demonstration.
 
@@ -6,7 +6,7 @@ Build these as typed TypeScript modules under `lib/data/`. No backend, no fetch,
 
 ---
 
-## 0. Truth ledger — read this first
+## 0. Truth ledger, read this first
 
 Keep the demo defensible. Three categories:
 
@@ -66,7 +66,7 @@ export const PRIMARY_EVENT = {
   id: 'EVT-2026-0722-KHH',
   severity: 'CRITICAL',
   timestamp: '2026-07-22T14:31:58Z',
-  headline: 'MARITIME QUARANTINE — KAOHSIUNG',
+  headline: 'MARITIME QUARANTINE: KAOHSIUNG',
   body: 'PRC customs inspection regime declared for outbound container traffic, Kaohsiung and adjacent anchorages. Air corridors unaffected. Ocean freight holding at berth.',
   sourceCount: 3,
   confidence: 94,
@@ -83,24 +83,24 @@ Six pre-existing, three arriving on a timer. Mixed severity so the feed reads as
 ```ts
 export const FEED_EVENTS = [
   // pre-existing, oldest first when reversed
-  { t: '13:58:12', sev: 'INFO',     head: 'ALLOCATION NOTICE — POWER DISCRETES',
+  { t: '13:58:12', sev: 'INFO',     head: 'ALLOCATION NOTICE: POWER DISCRETES',
     body: 'Distributor allocation tightening on 600V IGBT modules. Two authorized channels reporting.' },
-  { t: '14:02:44', sev: 'INFO',     head: 'FAB UTILIZATION — MATURE NODES',
+  { t: '14:02:44', sev: 'INFO',     head: 'FAB UTILIZATION: MATURE NODES',
     body: 'Mature-node utilization up 0.4pt week-over-week across tracked foundries.' },
-  { t: '14:09:31', sev: 'WARN',     head: 'LEAD TIME EXTENSION — OPTOCOUPLERS',
+  { t: '14:09:31', sev: 'WARN',     head: 'LEAD TIME EXTENSION: OPTOCOUPLERS',
     body: 'Quoted lead times extending 3-5 weeks across isolation component category.' },
-  { t: '14:15:07', sev: 'INFO',     head: 'EXPORT RULE — COMMENT PERIOD OPENS',
+  { t: '14:15:07', sev: 'INFO',     head: 'EXPORT RULE: COMMENT PERIOD OPENS',
     body: 'Proposed rule affecting ownership screening thresholds enters public comment.' },
-  { t: '14:21:53', sev: 'WARN',     head: 'TYPHOON ADVISORY — LUZON STRAIT',
+  { t: '14:21:53', sev: 'WARN',     head: 'TYPHOON ADVISORY: LUZON STRAIT',
     body: 'Tropical system tracking north. Shipping advisories issued, no closures yet.' },
-  { t: '14:27:19', sev: 'INFO',     head: 'PRICE MOVEMENT — SUBSTRATE',
+  { t: '14:27:19', sev: 'INFO',     head: 'PRICE MOVEMENT: SUBSTRATE',
     body: 'BT substrate spot pricing up 2.1% month-over-month.' },
   // arriving on timer during the demo
-  { t: '14:30:02', sev: 'WARN',     head: 'PORT CONGESTION — KAOHSIUNG',
+  { t: '14:30:02', sev: 'WARN',     head: 'PORT CONGESTION: KAOHSIUNG',
     body: 'Berth wait times extending. Cause not yet attributed.', arrivesAtMs: 3200 },
-  { t: '14:31:11', sev: 'WARN',     head: 'CARRIER ADVISORY — TW ROUTES',
+  { t: '14:31:11', sev: 'WARN',     head: 'CARRIER ADVISORY: TW ROUTES',
     body: 'Two carriers issue schedule reliability warnings for Taiwan-origin lanes.', arrivesAtMs: 5600 },
-  { t: '14:31:58', sev: 'CRITICAL', head: 'MARITIME QUARANTINE — KAOHSIUNG',
+  { t: '14:31:58', sev: 'CRITICAL', head: 'MARITIME QUARANTINE: KAOHSIUNG',
     body: 'PRC customs inspection regime, outbound container traffic. Air corridors unaffected.',
     arrivesAtMs: 8000, isPrimary: true },
 ]
@@ -127,7 +127,7 @@ These are deliberately moderate. $2.6M against $6.1M quarterly build value on th
 
 ---
 
-## 4. BOM — 31 lines
+## 4. BOM: 31 lines
 
 Schema:
 
@@ -190,7 +190,7 @@ export interface SupplyPathNode {
 }
 ```
 
-Six per unit is correct for a 3-phase inverter — one gate driver per IGBT, six IGBTs in a three-arm bridge. Details like this matter; a procurement person watching the video will check.
+Six per unit is correct for a 3-phase inverter: one gate driver per IGBT, six IGBTs in a three-arm bridge. Details like this matter; a procurement person watching the video will check.
 
 The ERP-blind warning text, rendered in the drawer:
 
@@ -223,22 +223,22 @@ Compose as follows:
 
 Real part families to distribute across the exposed and at-risk rows:
 
-- `TMS320F28027PTT` — C2000 Piccolo MCU, Texas Instruments, control card
-- `BM63577S-VC` — IGBT IPM 600V 30A, ROHM, power stage
-- `SCS310AMC` — SiC Schottky 650V 10A, ROHM, freewheel path
+- `TMS320F28027PTT`: C2000 Piccolo MCU, Texas Instruments, control card
+- `BM63577S-VC`: IGBT IPM 600V 30A, ROHM, power stage
+- `SCS310AMC`: SiC Schottky 650V 10A, ROHM, freewheel path
 - Isolation transformers, gate drive supply magnetics
 - Electrolytic and film DC-link capacitors
 - Current sense resistors, shunts
 - Connectors, terminal blocks, PCB fabrication
 
-The 12 clear lines can be mundane — passives, hardware, enclosure components. They exist to make 14/31 read as a real proportion rather than a designed one.
+The 12 clear lines can be mundane: passives, hardware, enclosure components. They exist to make 14/31 read as a real proportion rather than a designed one.
 
 ### Modeled rows
 
 Three rows with `provenance: 'MODELED'`, `tier: 3`, confidence between 55 and 75. Rendered in `--violet`, dashed left border. Tooltip text:
 
 ```
-MODELED — inferred from industry structure, not
+MODELED: inferred from industry structure, not
 per-part observed. Converts to OBSERVED as network
 coverage grows.
 ```
@@ -273,14 +273,14 @@ export interface GraphEdge {
 ```
 
 Structure:
-- Ring 0 — Meridian, single node, amber, larger
-- Ring 1 — 31 BOM line nodes
-- Ring 2 — ~28 suppliers and manufacturers
-- Ring 3 — ~30 fabs, backend assembly sites, logistics chokepoints
+- Ring 0: Meridian, single node, amber, larger
+- Ring 1: 31 BOM line nodes
+- Ring 2: ~28 suppliers and manufacturers
+- Ring 3: ~30 fabs, backend assembly sites, logistics chokepoints
 
 The Kaohsiung backend node (`NODE-KHH-ASE`) is the propagation origin. Its edges reach the ISO5852SDW BOM node plus 13 others along real topology paths.
 
-Edge provenance: roughly 1,847 observed to 412 modeled in the global counter. In the visible graph, keep the ratio similar — about 115 observed edges, 25 modeled.
+Edge provenance: roughly 1,847 observed to 412 modeled in the global counter. In the visible graph, keep the ratio similar: about 115 observed edges, 25 modeled.
 
 ### Contamination sequence
 
@@ -292,7 +292,7 @@ Scripted, 6 seconds, replayable:
 | 1.2s | `NODE-KHH-ASE` flares red. Three concentric rings pulse outward. |
 | 1.8s | Propagation begins. Each affected node transitions green→red over 200ms, staggered 60ms, following actual edge topology. |
 | 4.0s | 14 BOM nodes red. Meridian center node ring turns amber. |
-| 5.0s | ISO5852SDW path highlights `--cyan` and holds. Label appears: `TIER-2 EXPOSURE — NOT VISIBLE IN ERP` |
+| 5.0s | ISO5852SDW path highlights `--cyan` and holds. Label appears: `TIER-2 EXPOSURE: NOT VISIBLE IN ERP` |
 | 6.0s | Settle. Resume drift. |
 
 Must be replayable via a `↻ REPLAY` control, bottom-left, so takes can be re-shot without a page reload.
@@ -322,7 +322,7 @@ Arcs run from origin sites to `NODE-ROC`. Arcs whose origin is `exposed: true` r
 
 Quarantine zone polygon: translucent red over the strait around 22.6N 120.3E, 8% fill, 1px dashed border.
 
-Map rendering is hand-rolled SVG using `d3-geo` `geoEquirectangular`, with world atlas TopoJSON stored locally at `public/geo/world-110m.json`. Do not use `react-simple-maps` — it has been unmaintained since 2023 and its peer dependencies stop at React 18.
+Map rendering is hand-rolled SVG using `d3-geo` `geoEquirectangular`, with world atlas TopoJSON stored locally at `public/geo/world-110m.json`. Do not use `react-simple-maps`; it has been unmaintained since 2023 and its peer dependencies stop at React 18.
 
 ---
 
@@ -400,7 +400,7 @@ export const ACTIONS = [
 ]
 ```
 
-6 + 3 + 2 = 11 OBSERVED lines recovered. This is the honest split, and it does **not** equal the exposed line count. The 14 exposed lines are 11 OBSERVED + 3 MODELED tier-3 lines (BOM-12/13/14); actions only ever recover the 11 OBSERVED lines. The 3 MODELED lines are FLAGGED, never resolved — the product does not claim to resolve exposure it merely inferred (see §4 "Modeled rows", and `components/resolve/ResolutionBar.tsx` / `ActionImpact.tsx`, which render the 11-resolvable / 3-flagged split explicitly).
+6 + 3 + 2 = 11 OBSERVED lines recovered. This is the honest split, and it does **not** equal the exposed line count. The 14 exposed lines are 11 OBSERVED + 3 MODELED tier-3 lines (BOM-12/13/14); actions only ever recover the 11 OBSERVED lines. The 3 MODELED lines are FLAGGED, never resolved, because the product does not claim to resolve exposure it merely inferred (see §4 "Modeled rows", and `components/resolve/ResolutionBar.tsx` / `ActionImpact.tsx`, which render the 11-resolvable / 3-flagged split explicitly).
 
 Do not "fix" this back to `6 + 4 + 4 = 14` to make the recovery total match the exposed count. That reintroduces the dishonest claim that modeled inference gets resolved. The counts are load-bearing: `covers` array lengths must be 6 / 3 / 2 (= each action's `recovers`), summing to 11 with no BOM line double-covered, and every covered line must be OBSERVED. `components/resolve/rollup.ts` asserts exactly this at import time and throws on drift.
 
@@ -425,4 +425,4 @@ The observed count increments by 1 every 20 seconds during the demo. Over a two-
 
 ## 10. Determinism
 
-Every random-feeling behavior — ticker walks, feed arrival jitter, graph drift — must be seeded so takes are repeatable. Wrap in a `DemoClock` context with a fixed seed constant. A demo that plays differently every time is a demo you cannot cut.
+Every random-feeling behavior (ticker walks, feed arrival jitter, graph drift) must be seeded so takes are repeatable. Wrap in a `DemoClock` context with a fixed seed constant. A demo that plays differently every time is a demo you cannot cut.

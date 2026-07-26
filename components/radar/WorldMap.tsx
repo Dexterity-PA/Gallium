@@ -24,10 +24,10 @@ import {
   nodeDetailFromSite,
   type NodeDetail,
 } from "@/components/shared/NodeDetailPanel";
-// Bundled at build time — nothing loads from the network at runtime.
+// Bundled at build time. Nothing loads from the network at runtime.
 import worldTopo from "../../public/geo/world-110m.json";
 
-const INBOUND_ID = "NODE-CHI"; // Chicago inbound — ocean freight terminus
+const INBOUND_ID = "NODE-CHI"; // Chicago inbound, ocean freight terminus
 
 // ---- framing (unchanged: uniform equirectangular, no stretch) ------------
 // The base projection fits every site inside the panel with ~5° margin and ONE
@@ -44,7 +44,7 @@ const DEG = Math.PI / 180;
 const GRATICULE = geoGraticule().step([20, 20]);
 
 // Equirectangular identity raw projection. `invert` is what makes the cursor
-// lat/long readout possible — d3 only exposes projection.invert when the raw
+// lat/long readout possible: d3 only exposes projection.invert when the raw
 // projection supplies one, and the identity is its own inverse.
 const RAW_EQUIRECT: GeoRawProjection = Object.assign(
   (lambda: number, phi: number): [number, number] => [lambda, phi],
@@ -54,11 +54,11 @@ const RAW_EQUIRECT: GeoRawProjection = Object.assign(
 const MIN_Z = 1; // home = fit; cannot zoom out past the full map
 const MAX_Z = 8;
 
-const TICK = 8; // px — edge tick length for the cursor lat/long marks
+const TICK = 8; // px, edge tick length for the cursor lat/long marks
 
 // The readout must never claim a coordinate that does not exist. Longitude
 // wraps (panning hard at high zoom runs past ±180); latitude clamps, because
-// the uniform fit letterboxes past the poles — the pane's top and bottom edges
+// the uniform fit letterboxes past the poles, so the pane's top and bottom edges
 // sit beyond ±90 and inverting there yields a latitude no place has.
 const wrapLng = (l: number) => ((((l + 180) % 360) + 360) % 360) - 180;
 const clampLat = (l: number) => Math.min(90, Math.max(-90, l));
@@ -115,7 +115,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
   const [hover, setHover] = useState<Site | null>(null);
   const [selected, setSelected] = useState<Site | null>(null);
   const [view, setView] = useState<View>({ z: 1, panX: 0, panY: 0 });
-  // Raw cursor position in pane coordinates — drives the edge ticks and the
+  // Raw cursor position in pane coordinates. Drives the edge ticks and the
   // corner lat/long readout. Null whenever the pointer is off the pane.
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
 
@@ -403,9 +403,9 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
         <svg width={w} height={h} className="absolute inset-0">
           <rect x={0} y={0} width={w} height={h} fill="var(--bg-base)" />
 
-          {/* geographic layer — scales/pans with the view transform */}
+          {/* geographic layer: scales/pans with the view transform */}
           <g transform={groupTransform}>
-            {/* Graticule sits below the threshold of notice on purpose — it is
+            {/* Graticule sits below the threshold of notice on purpose, since it is
                 orientation, not content, and must never read as strongly as a
                 coastline. */}
             <path
@@ -418,7 +418,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
               vectorEffect="non-scaling-stroke"
             />
             {/* One flat tone for all land. No shading, no gradient, no
-                per-country variation — landmass is a backdrop. */}
+                per-country variation, because landmass is a backdrop. */}
             <path
               d={pathD}
               fill="var(--bg-elevated)"
@@ -437,7 +437,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
             />
           </g>
 
-          {/* ocean lanes — scenario only: quarantined origin → Chicago inbound
+          {/* ocean lanes, scenario only: quarantined origin → Chicago inbound
               (screen space, clickable) */}
           {SCENARIO_ORIGINS.map((s, i) => {
             const [x0, y0] = project(s.lng, s.lat);
@@ -482,7 +482,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
           })}
 
           {/* Final inland leg: Chicago inbound → Rockford assembly. Kept because
-              it is the last leg of the quarantined freight — without it the
+              it is the last leg of the quarantined freight; without it the
               scenario lanes stop at a port and never reach the customer. Neutral
               tone: the disruption is upstream of here. */}
           {(() => {
@@ -512,7 +512,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
             );
           })()}
 
-          {/* sites — constant-size 4px squares in screen space */}
+          {/* sites: constant-size 4px squares in screen space */}
           {SITES.map((s) => {
             const [x, y] = project(s.lng, s.lat);
             const isKhh = s.id === "NODE-KHH-ASE";
@@ -544,7 +544,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
                     }}
                   />
                 ) : null}
-                {/* Selection is structural, not semantic — neutral, so the two
+                {/* Selection is structural, not semantic. Neutral, so the two
                     accents on this panel stay --critical and --warn. */}
                 {isSel ? (
                   <rect
@@ -578,7 +578,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
 
           {/* Cursor lat/long: 8px ticks at the four pane edges. Edge marks
               locate the cursor on both axes without drawing a line across the
-              frame — the full-length crosshair read as a targeting reticle. */}
+              frame: the full-length crosshair read as a targeting reticle. */}
           {cursor ? (
             <g
               stroke="var(--text-secondary)"
@@ -599,7 +599,7 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
       {/* fixed cursor coordinate readout */}
       {ready ? (
         <div className="label pointer-events-none absolute bottom-2 left-2 z-10 tabular-nums">
-          {coord ?? "—"}
+          {coord ?? "n/a"}
         </div>
       ) : null}
 
@@ -660,7 +660,7 @@ function MapButton({
   onClick: () => void;
   title: string;
 }) {
-  // Hairline square, --fs-label glyph. No fill weight, no accent colour — this
+  // Hairline square, --fs-label glyph. No fill weight, no accent colour, because this
   // is a control, not a feature.
   return (
     <button

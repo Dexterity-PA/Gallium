@@ -4,13 +4,13 @@ import { BOM } from "@/lib/data/bom";
 // Resolution actions (DATA.md §8). Post-reconciliation the four actions
 // recover 6 + 3 + 2 (logistics) + 2 (compliance) = 13 = OBSERVED_RESOLVABLE.
 // Of the 16 lines requiring action, the 3 MODELED tier-3 lines are flagged,
-// not resolved (they cannot be — see ResolutionBar). Keep counts consistent;
+// not resolved (they cannot be; see ResolutionBar). Keep counts consistent;
 // they are all derived below and asserted in rollup.ts.
 //
 // The 4th action (ACT-LICENSE) is a COMPLIANCE / affiliates-screening item on a
 // SEPARATE axis from the logistics recovery: its two covered lines are ownership-
 // FLAGGED and logistics-CLEAR (not quarantine-exposed). It now DOES count toward
-// action — recovers: 2 / covers: [BOM-27, BOM-31] — folding into the 13 OBSERVED
+// action (recovers: 2 / covers: [BOM-27, BOM-31]), folding into the 13 OBSERVED
 // RESOLVABLE and the 16 LINES_REQUIRING_ACTION totals. Its "COVERS 2 LINES"
 // header is derived from `recovers` (ActionCard LICENSE special-case), kept
 // neutral (not green) so it still reads as the distinct compliance axis.
@@ -19,7 +19,7 @@ import { BOM } from "@/lib/data/bom";
 // former components/resolve/coverage.ts). Each array holds the exact lines the
 // action recovers; lengths are 6 / 3 / 2 / 2 = 13 RESOLVABLE lines, none double-
 // covered. All RESOLVE behaviour derives from it (see components/resolve/
-// rollup.ts). Do NOT add the 3 MODELED lines (BOM-12/13/14) to any action —
+// rollup.ts). Do NOT add the 3 MODELED lines (BOM-12/13/14) to any action:
 // they are flagged, never resolved.
 export const ACTIONS: Action[] = [
   {
@@ -46,7 +46,7 @@ export const ACTIONS: Action[] = [
     kind: "SUBSTITUTE",
     title: "QUALIFIED ALTERNATE",
     recovers: 3,
-    // The isolated gate-drive cluster — the three tier-2 ERP-blind catches, all
+    // The isolated gate-drive cluster: the three tier-2 ERP-blind catches, all
     // assembled at Kaohsiung: gate driver (BOM-07), gate-drive supply
     // transformer (BOM-08), gate-network resistor array (BOM-09). A drop-in
     // alternate moves the whole cluster to a backend outside the zone.
@@ -87,7 +87,7 @@ export const ACTIONS: Action[] = [
     title: "LICENSE PAPERWORK",
     recovers: 2,
     // Compliance axis. These two supplier lines are ownership-FLAGGED (the 50%
-    // affiliates threshold), NOT quarantine-exposed — they are logistics-CLEAR.
+    // affiliates threshold), NOT quarantine-exposed, since they are logistics-CLEAR.
     // Post-reconciliation they DO count toward action: the resolution total is
     // 16 lines requiring action (14 exposed + 2 compliance) and 13 OBSERVED
     // RESOLVABLE (11 logistics + 2 compliance). Both ids are provenance OBSERVED
@@ -107,7 +107,7 @@ export const ACTIONS: Action[] = [
 ];
 
 // Honest resolution accounting. The three actions resolve the OBSERVED exposed
-// lines; the 3 MODELED tier-3 lines are only FLAGGED — the product cannot claim
+// lines; the 3 MODELED tier-3 lines are only FLAGGED: the product cannot claim
 // to have resolved exposure it merely inferred.
 export const OBSERVED_EXPOSED = BOM.filter(
   (b) => b.status === "EXPOSED" && b.provenance === "OBSERVED"
@@ -117,7 +117,7 @@ export const MODELED_FLAGGED = BOM.filter(
 ).length; // 3
 
 /* ============================================================
-   RECONCILED LINE LEDGER — the single source of truth for every
+   RECONCILED LINE LEDGER: the single source of truth for every
    line count shown on RADAR, EXPOSURE and RESOLVE. Derived from
    BOM + ACTIONS so the four screens cannot drift apart.
 

@@ -14,7 +14,7 @@ interface RankedAlternate extends Alternate {
 }
 
 // Ranked by lines actually recovered (the graph-verified escape verdict),
-// not by availability/posture — a pin-compatible, in-stock alternate that
+// not by availability/posture. A pin-compatible, in-stock alternate that
 // still routes through the same backend recovers nothing and ranks last.
 function rankedAlternates(lines: BomLine[]): RankedAlternate[] {
   return lines
@@ -117,7 +117,7 @@ export function ActionCard({
           </span>
         ) : null}
         {action.kind === "LICENSE" ? (
-          // Compliance axis. Derived from `recovers` (now 2 — part of the 13
+          // Compliance axis. Derived from `recovers` (now 2, part of the 13
           // OBSERVED RESOLVABLE). Kept neutral rather than green and worded
           // "COVERS" not "+N" so it reads as the separate affiliates axis, not
           // a freight/inventory recovery.
@@ -162,8 +162,8 @@ export function ActionCard({
             <span
               className="overflow-hidden text-ellipsis whitespace-nowrap text-label"
               style={{
-                // LICENSE covers no BOM lines (compliance axis); stay neutral —
-                // never green — since nothing here resolves an observed line.
+                // LICENSE covers no BOM lines (compliance axis); stay neutral,
+                // never green, since nothing here resolves an observed line.
                 color:
                   action.kind === "LICENSE"
                     ? "var(--text-secondary)"

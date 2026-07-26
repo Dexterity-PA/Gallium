@@ -2,6 +2,7 @@
 
 import { ACTIONS, OBSERVED_RESOLVABLE, MODELED_FLAGGED } from "@/lib/data/actions";
 import { IMPACT } from "@/lib/data/event";
+import { BUFFER_DAYS, recoveredDaysToHalt } from "@/lib/derive/halt";
 import { MODELED_NOTE } from "@/lib/data/bom";
 import { Metric } from "@/components/ui/Metric";
 import { useCountUp } from "@/lib/hooks/useCountUp";
@@ -14,10 +15,12 @@ import {
 } from "@/components/resolve/rollup";
 
 // Live rollup for the right rail. Metric treatment is deliberately identical
-// to components/radar/ImpactSummary.tsx — 10px label, 32px value, 300ms
-// count-up — so RADAR and RESOLVE read as one instrument.
+// to components/radar/ImpactSummary.tsx: 10px label, 32px value, 300ms
+// count-up, so RADAR and RESOLVE read as one instrument.
 
-const BASE_DAYS = IMPACT.daysToHalt; // 52 — inventory cover at the moment of the event
+// Inventory cover at the moment of the event. Derived in lib/derive/halt.ts
+// and read through IMPACT so RESOLVE, RADAR and PORTFOLIO cannot disagree.
+const BASE_DAYS = IMPACT.daysToHalt;
 
 export function ActionImpact({
   actionedIds,
@@ -31,20 +34,33 @@ export function ActionImpact({
 
   // The ledger now accounts for all four actions. The compliance action
   // (kind LICENSE) recovers 2 lines but contributes no cost/capital/schedule/
-  // days — its detail line is rendered on the compliance axis (below) rather
+  // days. Its detail line is rendered on the compliance axis (below) rather
   // than as "$0 · +0 DAYS".
   const ledgerActions = ACTIONS;
   const ledgerActioned = ledgerActions.filter((a) =>
     actionedIds.has(a.id)
   ).length;
 
+  // Runway is held to the buffer that actually exists. Re-routing a line
+  // restores a route; it does not create inventory, so the recovered figure
+  // cannot exceed BUFFER_DAYS. Unbounded, the four actions summed to 177 days
+  // against a 70-day buffer.
+  const projectedDays = recoveredDaysToHalt(BASE_DAYS, totals.daysGained);
+  const appliedDays = projectedDays - BASE_DAYS;
+  const isCapped = totals.daysGained > appliedDays;
+
   const lines = useCountUp(totals.lines, { duration: 300 });
   const cost = useCountUp(totals.incrementalCost, { duration: 300 });
   const capital = useCountUp(totals.capital, { duration: 300 });
-  const days = useCountUp(BASE_DAYS + totals.daysGained, { duration: 300 });
+  const days = useCountUp(projectedDays, { duration: 300 });
 
   return (
-    <div className="flex h-full flex-col gap-3 p-2">
+    // Right rail on a full-bleed screen: same 24px safe margin as RADAR's
+    // ImpactSummary, which this panel is deliberately identical to.
+    <div
+      className="flex h-full flex-col gap-3 p-2"
+      style={{ paddingRight: "var(--safe-inset)" }}
+    >
       <Metric
         label="Lines Recovered"
         value={
@@ -57,7 +73,7 @@ export function ActionImpact({
         sub={
           <>
             <span className="text-modeled">{MODELED_FLAGGED} MODELED</span>{" "}
-            FLAGGED — NOT RESOLVED
+            FLAGGED, NOT RESOLVED
           </>
         }
       />
@@ -91,10 +107,14 @@ export function ActionImpact({
         label="Days to Production Halt"
         value={Math.round(days)}
         tone={complete ? "var(--focus)" : "var(--critical)"}
-        sub={`BASELINE ${BASE_DAYS} · +${totals.daysGained} RECOVERED`}
+        sub={
+          isCapped
+            ? `BASELINE ${BASE_DAYS} · +${appliedDays} RECOVERED · ${BUFFER_DAYS}D CAP`
+            : `BASELINE ${BASE_DAYS} · +${appliedDays} RECOVERED`
+        }
       />
 
-      {/* per-action ledger — what each action contributed */}
+      {/* per-action ledger: what each action contributed */}
       <div className="border-t border-rule pt-2">
         <div className="mb-2 flex items-center justify-between label">
           <span>Action Ledger</span>
@@ -160,7 +180,7 @@ export function ActionImpact({
       {/* the residual the product will not claim */}
       <div className="border-t border-rule pt-2">
         <div className="mb-2 flex items-center justify-between label">
-          <span>Unresolved — Modeled</span>
+          <span>Unresolved · Modeled</span>
           <span className="tabular-nums">{MODELED_LINES.length}</span>
         </div>
         {MODELED_LINES.map((line) => (

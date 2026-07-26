@@ -33,15 +33,15 @@ interface Column {
 // scaled 11px → 12.5px (×1.14) when the table moved onto the type token.
 //
 // Fixed total ~1182px. DESCRIPTION still fills ~690px of the 1872px exposure
-// panel at 1920x1080 (kiosk, no browser chrome — DEMO.md §Resolution) — well
+// panel at 1920x1080 (kiosk, no browser chrome, DEMO.md §Resolution), well
 // past its longest value (~47ch ≈ 355px), so every column stays fully visible
 // and CONF never clips the right edge. The fixed columns cannot be trimmed
-// without truncating: MFR 232 fits "Modeled — leadframe supplier" (28ch);
+// without truncating: MFR 232 fits "Modeled leadframe supplier" (28ch);
 // ACTUAL EXPOSURE 188 fits "TW-KAOHSIUNG (modeled)" (22ch); MPN 142 fits
 // "CSS2H-2512R-L500" (16ch). Numeric columns are at their glyph width.
 //
 // Alignment is binary: text left, numbers right (tokens.css tabular-nums puts
-// every figure on the same decimal). Nothing is centred — a third alignment
+// every figure on the same decimal). Nothing is centred, because a third alignment
 // only makes the eye hunt for the column edge.
 const COLUMNS: Column[] = [
   { key: "mpn", label: "MPN", align: "left", width: "142px", sortKey: "mpn" },
@@ -68,7 +68,7 @@ export function BomTable({
   rows: BomLine[];
   selectedId: string | null;
   onSelect: (b: BomLine) => void;
-  // Fired when the OWNERSHIP cell is clicked — opens the ownership-chain
+  // Fired when the OWNERSHIP cell is clicked. Opens the ownership-chain
   // drawer instead of the supply-path drawer. Distinct from `onSelect`.
   onSelectOwnership: (b: BomLine) => void;
 }) {
@@ -98,7 +98,7 @@ export function BomTable({
   }, [rows, sortKey, sortDir]);
 
   // Column-aligned totals for the sticky summary row (Job 3). Derived from the
-  // rows currently shown — recomputes when the filter changes. No literals.
+  // rows currently shown, recomputed when the filter changes. No literals.
   const summary = useMemo(() => summarizeRows(rows), [rows]);
 
   const toggleSort = (k?: SortKey) => {
@@ -112,8 +112,15 @@ export function BomTable({
 
   return (
     <div className="h-full overflow-auto">
+      {/* The trailing cell of every row (header, body, summary) carries the
+          24px safe margin instead of its px-2. CONF is the right-most column
+          and this panel is full bleed, so those figures were landing 8px off
+          the window. Done as a last-child rule rather than on the container:
+          padding on the scroll box would inset the sticky header too, and
+          DESCRIPTION (the one auto-width column) absorbs the difference
+          either way. */}
       <table
-        className="w-full border-separate text-body"
+        className="w-full border-separate text-body [&_tr>*:last-child]:pr-[var(--safe-inset)]"
         style={{ borderSpacing: 0, tableLayout: "fixed" }}
       >
         <colgroup>
@@ -175,7 +182,7 @@ export function BomTable({
                 className={isCenter ? "anim-focal cursor-pointer" : "cursor-pointer"}
                 style={{ background: rowBg, borderLeft, height: "var(--row-h)" }}
               >
-                {/* MPN — the centrepiece separates on weight, not on a hue:
+                {/* MPN: the centrepiece separates on weight, not on a hue:
                     its left rule and focal pulse already say "look here". */}
                 <td
                   className="truncate px-2"
@@ -194,7 +201,7 @@ export function BomTable({
                 <td className="truncate px-2" style={{ color: baseText }}>
                   {b.manufacturer}
                 </td>
-                {/* OWNERSHIP — clicking this cell opens the ownership drawer,
+                {/* OWNERSHIP: clicking this cell opens the ownership drawer,
                     not the supply-path drawer; stop the row's onSelect. */}
                 {(() => {
                   const own = b.ownership ?? "CLEAR";
@@ -252,14 +259,14 @@ export function BomTable({
                       {b.actualExposure}
                     </span>
                   ) : (
-                    <span className="text-dim">—</span>
+                    <span className="text-dim">n/a</span>
                   )}
                 </td>
                 {/* TIER */}
                 <td className="px-2 text-right tabular-nums" style={{ color: baseText }}>
                   {b.tier}
                 </td>
-                {/* LEAD TIME — the week figure right-aligns on its own column
+                {/* LEAD TIME: the week figure right-aligns on its own column
                     and the delta sits in a fixed 4ch gutter after it, so the
                     "W" lands in the same place whether or not a row moved. */}
                 <td className="px-2 tabular-nums" style={{ color: isModeled ? "var(--modeled)" : "var(--text-primary)" }}>
@@ -306,13 +313,13 @@ export function BomTable({
             );
           })}
         </tbody>
-        {/* sticky summary row (Job 3) — pinned to the bottom like the header is
+        {/* sticky summary row (Job 3), pinned to the bottom like the header is
             pinned to the top. All totals derived from BOM via summarizeRows;
             cells align to the same colgroup so each total sits under its
             column. Stays within the 11-column fit at 1920x1080. */}
         <tfoot>
           <tr>
-            {/* MPN — totals label */}
+            {/* MPN: totals label */}
             <td className="sticky bottom-0 z-10 px-2 py-1" style={FOOT_STYLE}>
               <div className="label">
                 Σ Totals
@@ -321,7 +328,7 @@ export function BomTable({
                 {summary.totalRows} shown
               </div>
             </td>
-            {/* DESCRIPTION — definitions legend */}
+            {/* DESCRIPTION: definitions legend */}
             <td className="sticky bottom-0 z-10 px-2 py-1" style={FOOT_STYLE}>
               <div className="label">
                 Exposed-line aggregates · qty/unit summed · peak LT = max weeks ·
@@ -336,7 +343,7 @@ export function BomTable({
             <td className="sticky bottom-0 z-10 px-2" style={FOOT_STYLE} />
             {/* ACTUAL EXPOSURE */}
             <td className="sticky bottom-0 z-10 px-2" style={FOOT_STYLE} />
-            {/* TIER — tier mix over shown lines */}
+            {/* TIER: tier mix over shown lines */}
             <td
               className="sticky bottom-0 z-10 px-2 py-1 text-right"
               style={FOOT_STYLE}
@@ -348,7 +355,7 @@ export function BomTable({
                 T1·2·3
               </div>
             </td>
-            {/* LEAD TIME — peak lead time over exposed lines */}
+            {/* LEAD TIME: peak lead time over exposed lines */}
             <td
               className="sticky bottom-0 z-10 px-2 py-1 text-right"
               style={FOOT_STYLE}
@@ -360,7 +367,7 @@ export function BomTable({
                 peak · exp
               </div>
             </td>
-            {/* QTY/UNIT — summed qty/unit over exposed lines */}
+            {/* QTY/UNIT: summed qty/unit over exposed lines */}
             <td
               className="sticky bottom-0 z-10 px-2 py-1 text-right"
               style={FOOT_STYLE}
@@ -372,7 +379,7 @@ export function BomTable({
                 exp qty
               </div>
             </td>
-            {/* STATUS — exposed line count */}
+            {/* STATUS: exposed line count */}
             <td
               className="sticky bottom-0 z-10 px-2 py-1"
               style={FOOT_STYLE}

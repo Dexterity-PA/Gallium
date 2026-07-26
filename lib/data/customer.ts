@@ -1,4 +1,4 @@
-// Representative customer — invented for the demo (DATA.md §0, §1).
+// Representative customer, invented for the demo (DATA.md §0, §1).
 export const CUSTOMER = {
   name: "Meridian Drive Systems",
   shortName: "MERIDIAN",

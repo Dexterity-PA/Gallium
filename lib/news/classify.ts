@@ -13,7 +13,7 @@ export interface ArticleClassification {
   severity: Severity;
   affectedNodeId: string | null;
   componentCategories: string[];
-  confidence: number; // a ConfidenceBand value — see lib/data/confidence.ts
+  confidence: number; // a ConfidenceBand value; see lib/data/confidence.ts
   matchedBomIds: string[];
 }
 

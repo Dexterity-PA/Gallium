@@ -1,4 +1,4 @@
-# BRIEF.md — Gallium Demo Build
+# BRIEF.md: Gallium Demo Build
 
 ## What this is
 
@@ -13,9 +13,9 @@ All data is synthetic or representative and must be labeled as such in the UI at
 
 ## Companion documents
 
-- `DESIGN.md` — visual system. Read before writing any UI. Wins any visual conflict.
-- `DATA.md` — the mock dataset, schemas, and the truth ledger of what is real vs invented.
-- `DEMO.md` — the click path and recording notes. Build so that path plays cleanly.
+- `DESIGN.md`: visual system. Read before writing any UI. Wins any visual conflict.
+- `DATA.md`: the mock dataset, schemas, and the truth ledger of what is real vs invented.
+- `DEMO.md`: the click path and recording notes. Build so that path plays cleanly.
 
 Also read `/mnt/skills/public/frontend-design/SKILL.md` before starting UI work. Apply its thinking about intentional design, but the density constraints in `DESIGN.md` are load-bearing and override any suggestion to add breathing room or soften the aesthetic.
 
@@ -33,7 +33,7 @@ recharts               small inline charts
 framer-motion          transitions, drawer, layout animation
 ```
 
-Note: do **not** use `react-simple-maps`. It has been unmaintained since 2023 and its peer dependencies stop at React 18, which conflicts with React 19. The map is hand-rolled SVG on `d3-geo` — the brief needs custom arc animation anyway, so the library was never buying much.
+Note: do **not** use `react-simple-maps`. It has been unmaintained since 2023 and its peer dependencies stop at React 18, which conflicts with React 19. The map is hand-rolled SVG on `d3-geo`; the brief needs custom arc animation anyway, so the library was never buying much.
 
 World atlas TopoJSON goes at `public/geo/world-110m.json`, loaded locally. No tile server, no API key, nothing that can fail to load while recording.
 
@@ -102,7 +102,7 @@ lib/
 
 Present on every screen, never scrolls away.
 
-### Top status bar — 28px
+### Top status bar (28px)
 
 ```
 GALLIUM │ MERIDIAN DRIVE SYSTEMS │ ⬤ LIVE │ 14:32:07 UTC │ OBSERVED 1,847 / MODELED 412 │ ⌘K
@@ -113,11 +113,11 @@ GALLIUM │ MERIDIAN DRIVE SYSTEMS │ ⬤ LIVE │ 14:32:07 UTC │ OBSERVED 1,
 - The observed/modeled counter is the moat story. It sits on screen for the entire video and ticks upward during it.
 - Separators are 1px vertical `--border` rules, not pipe characters
 
-### Bottom ticker — 22px
+### Bottom ticker (22px)
 
 Continuous horizontal scroll, ~40s loop, items from `lib/data/ticker.ts`. Red for up-arrows on lead times and costs, green for down. Never pauses.
 
-### Left nav rail — 48px
+### Left nav rail (48px)
 
 RADAR / EXPOSURE / GRAPH / RESOLVE, icon only. Active item takes a 2px `--amber` left border. Route changes are instant, no page transition animation.
 
@@ -126,14 +126,14 @@ RADAR / EXPOSURE / GRAPH / RESOLVE, icon only. Active item takes a 2px `--amber`
 Fixed bottom-right, above the ticker, 9px, `--text-lo`:
 
 ```
-REPRESENTATIVE DATA — CUSTOMER IDENTIFIERS ANONYMIZED
+REPRESENTATIVE DATA · CUSTOMER IDENTIFIERS ANONYMIZED
 ```
 
 Never removed, never faded, never repositioned for visual balance.
 
 ---
 
-## Screen 1 — RADAR
+## Screen 1: RADAR
 
 **Purpose:** Gallium watches everything, and it just caught something.
 
@@ -145,7 +145,7 @@ Reverse-chronological, newest at top. Row format:
 
 ```
 14:31:58  ▲ CRITICAL
-MARITIME QUARANTINE — KAOHSIUNG
+MARITIME QUARANTINE: KAOHSIUNG
 PRC customs inspection regime, outbound container
 traffic. Air corridors unaffected.
 SRC: 3 outlets · CONF 94%
@@ -189,7 +189,7 @@ Below them, a segmented bar: 31 segments, 14 turning red in a staggered cascade 
 
 ---
 
-## Screen 2 — EXPOSURE
+## Screen 2: EXPOSURE
 
 **Purpose:** which parts, how bad, and the catch their own systems missed.
 
@@ -213,7 +213,7 @@ MPN │ DESCRIPTION │ MFR │ ERP ORIGIN │ ACTUAL EXPOSURE │ TIER │ LEAD
 Clicking it opens a right drawer, 420px, 240ms slide:
 
 ```
-ISO5852SDW — SUPPLY PATH
+ISO5852SDW · SUPPLY PATH
 
   WAFER FAB      Dallas, TX, USA           ● OBSERVED
   BACKEND A&T    ASE Kaohsiung, TW         ● OBSERVED
@@ -230,11 +230,11 @@ ISO5852SDW — SUPPLY PATH
     import records, manufacturer site disclosures
 ```
 
-The warning block gets a 1px `--red` border at 30% opacity and `--red` at 6% background. It is the single most important text in the build — the entire video exists to land on it. Give it room within the drawer's density constraints and make sure it is fully legible at recording resolution.
+The warning block gets a 1px `--red` border at 30% opacity and `--red` at 6% background. It is the single most important text in the build; the entire video exists to land on it. Give it room within the drawer's density constraints and make sure it is fully legible at recording resolution.
 
 ---
 
-## Screen 3 — GRAPH
+## Screen 3: GRAPH
 
 **Purpose:** the money shot. Build this one most carefully.
 
@@ -250,7 +250,7 @@ Force-directed, canvas, `react-force-graph-2d`. ~90 nodes, ~140 edges per `DATA.
 
 ### Contamination sequence
 
-Scripted, six seconds, choreographed in `ContaminationSequence.ts`. Timing table is in `DATA.md` §5. Summary: Kaohsiung flares, propagation follows real topology node by node at 60ms stagger, 14 BOM nodes go red, center node ring turns amber, then the ISO5852SDW path lights cyan and holds with the label `TIER-2 EXPOSURE — NOT VISIBLE IN ERP`.
+Scripted, six seconds, choreographed in `ContaminationSequence.ts`. Timing table is in `DATA.md` §5. Summary: Kaohsiung flares, propagation follows real topology node by node at 60ms stagger, 14 BOM nodes go red, center node ring turns amber, then the ISO5852SDW path lights cyan and holds with the label `TIER-2 EXPOSURE: NOT VISIBLE IN ERP`.
 
 Must be replayable without page reload. `↻ REPLAY` control bottom-left, 10px, unobtrusive.
 
@@ -264,11 +264,11 @@ Run the sequence automatically on first mount of the route.
 
 ### Legend
 
-Bottom-left, 9px, always visible. Must include the observed vs modeled distinction — that is the part a viewer needs to read.
+Bottom-left, 9px, always visible. Must include the observed vs modeled distinction, because that is the part a viewer needs to read.
 
 ---
 
-## Screen 4 — RESOLVE
+## Screen 4: RESOLVE
 
 **Purpose:** Gallium does not just alert, it resolves.
 
@@ -283,7 +283,7 @@ Card anatomy:
 
 Top of screen: resolution bar reading `14 EXPOSED → 0 UNRESOLVED` with a 14-segment progress indicator that fills as cards are actioned.
 
-CTA buttons open a centered modal with a formatted document preview — freight authorization, qualification packet, purchase requisition. These do not need to generate real files. They need to render convincingly enough to hold for two seconds on camera.
+CTA buttons open a centered modal with a formatted document preview: freight authorization, qualification packet, purchase requisition. These do not need to generate real files. They need to render convincingly enough to hold for two seconds on camera.
 
 ---
 
@@ -316,9 +316,9 @@ Everything seeded from a fixed constant so takes are repeatable. A demo that pla
 Sequential unless noted.
 
 1. **Parallel:** (a) tokens + fonts + global chrome + nav, (b) all `lib/data/` modules fully typed, (c) `useDemoClock` + `useCountUp` + `useSeededRandom`. These three do not touch each other.
-2. **EXPOSURE** table and drawer. Highest information density, hardest to fake — do it first while attention is fresh, and it establishes the visual pattern everything else follows.
+2. **EXPOSURE** table and drawer. Highest information density and hardest to fake, so do it first while attention is fresh, and it establishes the visual pattern everything else follows.
 3. Review EXPOSURE in browser before continuing. Fix alignment and density issues now, not later.
-4. **Parallel:** GRAPH, RADAR, RESOLVE — all three now have an established pattern to match.
+4. **Parallel:** GRAPH, RADAR, RESOLVE. All three now have an established pattern to match.
 5. Command palette.
 6. Polish pass: column alignment, tabular numbers, hairline consistency, animation timing, legibility at 1080p.
 

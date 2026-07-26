@@ -20,7 +20,7 @@ interface Entry {
 
 // Kind badges are wayfinding, not a RULE 4 severity signal: PART/SUPPLIER/SITE
 // stay --text-secondary and let the 3-letter code do the differentiating.
-// ACTION alone gets --focus — it is literally "you can act on this" (RULE 9).
+// ACTION alone gets --focus, because it is literally "you can act on this" (RULE 9).
 const KIND_COLOR: Record<EntryKind, string> = {
   PART: "var(--text-secondary)",
   SUPPLIER: "var(--text-secondary)",

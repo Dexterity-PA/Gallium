@@ -12,7 +12,7 @@ interface EntryScreenProps {
   onUpload: (rows: UploadRow[], fileName: string) => void;
 }
 
-// The opening shot — no BOM loaded yet, so no dashboard chrome exists around
+// The opening shot. No BOM loaded yet, so no dashboard chrome exists around
 // this (see AppShell). Composed from the same primitives as every other
 // screen (Panel, Scanline, the token palette), just with room to breathe.
 export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
@@ -28,7 +28,7 @@ export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
         .then((text) => {
           const rows = extractUploadRows(parseCsv(text));
           if (rows.length === 0) {
-            setError('No rows found — expected a header row with an "mpn" column.');
+            setError('No rows found: expected a header row with an "mpn" column.');
             return;
           }
           onUpload(rows, file.name);
@@ -79,7 +79,7 @@ export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
       <div className="flex w-full max-w-[560px] flex-col items-center gap-4">
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="text-[10px] tracking-[0.3em] text-[var(--text-dim)]">
-            DEMO MODE — SAMPLE DATA
+            DEMO MODE · SAMPLE DATA
           </div>
           <div className="text-[42px] font-bold tracking-[0.1em] text-[var(--text-primary)]">
             GALLIUM
@@ -146,7 +146,7 @@ export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
           onClick={onUseSample}
           className="flex h-[34px] w-full items-center justify-center gap-2 border border-[var(--focus)] text-[11px] uppercase tracking-[0.12em] text-[var(--focus)] transition-colors hover:bg-[var(--focus)] hover:text-[var(--bg-base)]"
         >
-          Use sample BOM — MD-7200
+          Use sample BOM · MD-7200
         </button>
 
         <button
@@ -159,7 +159,7 @@ export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
       </div>
 
       <div className="absolute bottom-4 text-[9px] tracking-[0.06em] text-[var(--text-dim)]">
-        FICTIONAL SCENARIO — REPRESENTATIVE DATA
+        FICTIONAL SCENARIO · REPRESENTATIVE DATA
       </div>
     </div>
   );

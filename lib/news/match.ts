@@ -5,7 +5,7 @@ import type { Article } from "@/lib/types";
 
 // Match stage of the news pipeline. Component-category keyword patterns,
 // tested against free text to classify AND against BOM.description to find
-// real BOM lines — same regex both directions, so a category can't drift
+// real BOM lines, using the same regex both directions, so a category can't drift
 // between "what we called it" and "what it actually matched." This is the
 // same keyword-to-BOM-description technique as eventLines() in
 // components/radar/EventFeed.tsx, applied to articles instead of feed rows.
@@ -28,7 +28,7 @@ export function categoriesFor(text: string): string[] {
 // Compute the real BOM lines a set of categories touches. "compliance" reads
 // the ownership axis (ownership !== CLEAR, the 7-line screening universe);
 // everything else tests the category regex against BOM.description, same as
-// eventLines(). Deliberately independent of Article.relatedBomIds — see
+// eventLines(). Deliberately independent of Article.relatedBomIds. See
 // reconcile() below, which compares the two instead of trusting either.
 export function matchBomIds(categories: string[]): string[] {
   const matched = new Set<string>();
@@ -69,7 +69,7 @@ export function reconcile(
 // Keyword-matched on the feed headline, mirroring feedSources() in
 // lib/data/event.ts. Kept independent of EventFeed's internal eventLines()
 // so components/radar/EventFeed.tsx doesn't need to export or restructure
-// anything to support this — a second subagent is editing that file at the
+// anything to support this, since a second subagent was editing that file at the
 // same time (see ArticleChips.tsx for the additive integration point).
 const EVENT_ARTICLES: Array<[RegExp, string[]]> = [
   [/MARITIME QUARANTINE/, ["ART-KHH-QUARANTINE"]],
@@ -94,7 +94,7 @@ export function articlesForHeadline(head: string): Article[] {
 }
 
 // Sanity guard (dev-time): every headline pattern above should resolve to at
-// least one real article id, and every id must exist in the corpus — catches
+// least one real article id, and every id must exist in the corpus. Catches
 // a typo'd id or a renamed feed headline at import instead of a silent
 // empty chip at render time.
 export const EVENT_ARTICLE_LINKS_OK = (() => {

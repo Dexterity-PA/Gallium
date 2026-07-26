@@ -27,7 +27,7 @@ export default function Home() {
   const { loaded, hydrated, markLoaded } = useDemoState();
   const [stage, setStage] = useState<Stage>({ kind: "entry" });
 
-  // Revisiting "/" (e.g. browser back) once a BOM is already loaded — the
+  // Revisiting "/" (e.g. browser back) once a BOM is already loaded. The
   // dashboard is the real landing state at that point.
   useEffect(() => {
     if (hydrated && loaded) router.replace(LANDING_ROUTE);

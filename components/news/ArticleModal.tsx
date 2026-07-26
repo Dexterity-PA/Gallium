@@ -21,7 +21,7 @@ function fmtTime(iso: string): string {
   return `${d.toISOString().slice(0, 10)} · ${d.toISOString().slice(11, 16)} UTC`;
 }
 
-/** Per-article dismiss state — each open article gets a fresh Set (see `key` in ArticleModal). */
+/** Per-article dismiss state. Each open article gets a fresh Set (see `key` in ArticleModal). */
 function MatchedLines({ lines }: { lines: BomLine[] }) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const visible = lines.filter((l) => !dismissed.has(l.id));
@@ -86,13 +86,13 @@ function ArticleBody({ article }: { article: Article }) {
 
   return (
     <>
-      {/* unmissable fictional marker — separate from any app-wide scenario disclaimer */}
+      {/* unmissable fictional marker, separate from any app-wide scenario disclaimer */}
       <div className="flex items-center gap-2 border border-[var(--critical)] bg-[color-mix(in_srgb,var(--critical)_12%,var(--bg-elevated))] px-2 py-1">
         <span className="text-[10px] font-medium tracking-[0.10em] text-[var(--critical)]">
           ⚠ FICTIONAL ARTICLE
         </span>
         <span className="text-[9px] tracking-[0.06em] text-[var(--text-secondary)]">
-          Generated for a YC application demo — no real outlet, event, or company statement.
+          Generated for a YC application demo. No real outlet, event, or company statement.
         </span>
       </div>
 
@@ -150,7 +150,7 @@ function ArticleBody({ article }: { article: Article }) {
                   {NODE_LABELS.get(cls.affectedNodeId) ?? cls.affectedNodeId}
                 </span>
               ) : (
-                <span className="text-[var(--text-dim)]">— none (macro signal)</span>
+                <span className="text-[var(--text-dim)]">none (macro signal)</span>
               )}
             </span>
           </div>
@@ -181,7 +181,7 @@ function ArticleBody({ article }: { article: Article }) {
           {recon && !recon.agree ? (
             <div className="mt-2 text-[9px] leading-relaxed tracking-[0.04em] text-[var(--warn)]">
               ⚠ Computed match ({recon.computed.length} lines) differs from the article&rsquo;s
-              hand-authored relatedBomIds ({recon.authored.length} lines) — shown above is the
+              hand-authored relatedBomIds ({recon.authored.length} lines). Shown above is the
               computed match, not the curator&rsquo;s note.
             </div>
           ) : null}
@@ -228,6 +228,10 @@ export function ArticleModal({ article, onClose }: { article: Article | null; on
     <AnimatePresence>
       {article ? (
         <motion.div
+          // Keyed for AnimatePresence, same reason as DocumentModal: an
+          // unkeyed child is tracked as "" and collides with its own exiting
+          // copy. article.id also swaps cleanly between two articles.
+          key={article.id}
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

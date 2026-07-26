@@ -5,9 +5,9 @@ import { BOM } from "@/lib/data/bom";
 //
 // A customer uploads a BOM; each row's MPN is resolved here to recover the true
 // assembly/test origin their ERP cannot see (canonicalOrigin is what the ERP
-// shows; assemblyRegion is the real backend region — the blind spot). In the
+// shows; assemblyRegion is the real backend region, the blind spot). In the
 // demo the catalog is seeded from the MD-7200 BOM plus a few parts that are NOT
-// on this BOM, so an uploaded line can resolve even when it isn't ours — that's
+// on this BOM, so an uploaded line can resolve even when it is not ours, which is
 // what makes the resolution feel like a real catalog rather than an echo.
 //
 // The interface a real parts-intelligence backend would implement is
@@ -28,7 +28,7 @@ function categoryOf(description: string): string {
 
 // The real assembly/test region is the quarantine-zone stage in the supply
 // path (backend A&T / substrate / test). Null when nothing in the path sits in
-// the zone — i.e. no hidden exposure to recover.
+// the zone, i.e. no hidden exposure to recover.
 function assemblyRegionOf(line: (typeof BOM)[number]): string | null {
   const zoneStage = line.supplyPath?.find((s) => s.inQuarantineZone);
   return zoneStage ? zoneStage.site : null;
@@ -46,7 +46,7 @@ const FROM_BOM: ComponentRecord[] = BOM.map((b) => ({
   sourceIds: b.sourceIds,
 }));
 
-// Catalog parts NOT on the MD-7200 BOM — so an upload with unrelated lines
+// Catalog parts NOT on the MD-7200 BOM, so an upload with unrelated lines
 // still resolves against the network. Agent D / future work can extend this.
 const CATALOG_EXTRAS: ComponentRecord[] = [
   {
@@ -99,7 +99,7 @@ export const COMPONENTS: ComponentRecord[] = [...FROM_BOM, ...CATALOG_EXTRAS];
 
 const BY_MPN = new Map(COMPONENTS.map((c) => [c.mpn.toUpperCase(), c]));
 
-// Accessor — case-insensitive MPN resolution. Returns undefined for an MPN the
+// Accessor: case-insensitive MPN resolution. Returns undefined for an MPN the
 // network has never seen (the honest "unknown" case an upload flow must handle).
 export function resolveMpn(mpn: string): ComponentRecord | undefined {
   return BY_MPN.get(mpn.trim().toUpperCase());

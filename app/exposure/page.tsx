@@ -76,9 +76,12 @@ export default function ExposurePage() {
     <div className="relative h-full">
       <section className="flex h-full min-h-0 flex-col bg-panel">
         {/* panel header */}
-        <div className="flex h-row shrink-0 items-center justify-between border-b border-rule px-2">
+        <div
+          className="flex h-row shrink-0 items-center justify-between border-b border-rule pl-2"
+          style={{ paddingRight: "var(--safe-inset)" }}
+        >
           <span className="label">
-            Exposure — {CUSTOMER.focusProduct.line} bill of materials
+            Exposure · {CUSTOMER.focusProduct.line} bill of materials
           </span>
           <span className="text-label tabular-nums text-dim">
             {counts.ALL} LINES · {counts.EXPOSED} EXPOSED · {TIER2_CATCHES} TIER-2 CATCHES
@@ -86,7 +89,10 @@ export default function ExposurePage() {
         </div>
 
         {/* filter bar */}
-        <div className="flex shrink-0 items-center border-b border-rule px-2 py-1">
+        <div
+          className="flex shrink-0 items-center border-b border-rule pl-2 py-1"
+          style={{ paddingRight: "var(--safe-inset)" }}
+        >
           <FilterChips value={filter} onChange={changeFilter} counts={counts} />
         </div>
 

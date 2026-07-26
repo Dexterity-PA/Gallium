@@ -25,7 +25,13 @@ function Count({ dot, value }: { dot: string; value: number }) {
 export function GraphStats({ tally, scope }: { tally: GraphTally; scope: string }) {
   const T = tally;
   return (
-    <div className="pointer-events-none absolute right-2 top-2 z-10 w-[180px] select-none border border-rule bg-[color-mix(in_srgb,var(--bg-base)_88%,transparent)] px-2 py-1">
+    <div
+      className="pointer-events-none absolute top-2 z-10 w-[180px] select-none border border-rule bg-[color-mix(in_srgb,var(--bg-base)_88%,transparent)] px-2 py-1"
+      // 24px safe margin, same as the canvas controls below. This block is
+      // pinned to a full-bleed panel, so right-2 put its edge counts 8px off
+      // the window.
+      style={{ right: "var(--safe-inset)" }}
+    >
       {/* gap-2, not justify-between alone: the widest scope name (FULL
           NETWORK) and the widest count pair (90N · 162E) otherwise butt
           together with no space between them. */}

@@ -18,7 +18,7 @@ import { SourcePanel } from "@/components/shared/SourcePanel";
 // affiliates-flagged suppliers and their ownership chains.
 //
 // Honesty: every figure derives from real BOM fields (qtyPerUnit,
-// unitCost, leadTimeWeeks) or action.metrics — nothing invented. Issue
+// unitCost, leadTimeWeeks) or action.metrics, nothing invented. Issue
 // date is the fixed 2026-07-22. Signatories are ROLE placeholders only.
 // The PREVIEW · REPRESENTATIVE marker stays.
 // ------------------------------------------------------------------
@@ -56,7 +56,7 @@ const DOC_META: Record<Action["kind"], DocMeta> = {
   EXPEDITE: {
     refPrefix: "MDS-AFA",
     issuingDept: "LOGISTICS / TRAFFIC",
-    lineHeading: "AIR MANIFEST — COVERED LINES",
+    lineHeading: "AIR MANIFEST · COVERED LINES",
     terms: [
       { k: "INCOTERMS", v: "CIP · ROCKFORD, IL" },
       { k: "MODE / ROUTING", v: "AIR · KHH → ORD" },
@@ -71,7 +71,7 @@ const DOC_META: Record<Action["kind"], DocMeta> = {
   SUBSTITUTE: {
     refPrefix: "MDS-QP",
     issuingDept: "ENGINEERING / QUALITY",
-    lineHeading: "QUALIFICATION SCOPE — COVERED LINES",
+    lineHeading: "QUALIFICATION SCOPE · COVERED LINES",
     terms: [
       { k: "QUAL STANDARD", v: "IEC 61800-5-1" },
       { k: "QUAL TYPE", v: "FORM-FIT-FUNCTION ALT" },
@@ -99,7 +99,7 @@ const DOC_META: Record<Action["kind"], DocMeta> = {
   LICENSE: {
     refPrefix: "MDS-XL",
     issuingDept: "TRADE COMPLIANCE / LEGAL",
-    lineHeading: "AFFILIATES SCREENING — FLAGGED SUPPLIERS",
+    lineHeading: "AFFILIATES SCREENING · FLAGGED SUPPLIERS",
     terms: [
       { k: "DILIGENCE BASIS", v: "RED FLAG 29 · AFFILIATES" },
       { k: "SCREENING THRESHOLD", v: "50% AFFILIATES" },
@@ -239,7 +239,7 @@ function LineItemTable({ action, lines }: { action: Action; lines: BomLine[] }) 
         );
       })}
 
-      {/* subtotal — per finished MD-7200 unit */}
+      {/* subtotal: per finished MD-7200 unit */}
       <div className="flex items-center justify-between border-t border-rule-strong py-1">
         <span className="label">
           PER-UNIT BOM VALUE · {lines.length} LINES
@@ -247,7 +247,7 @@ function LineItemTable({ action, lines }: { action: Action; lines: BomLine[] }) 
         <span className="tabular-nums text-body text-primary">{dollars(subtotal)}</span>
       </div>
 
-      {/* extended shipment value — EXPEDITE only, scaled by its own UNITS metric */}
+      {/* extended shipment value, EXPEDITE only, scaled by its own UNITS metric */}
       {units ? (
         <div className="flex items-center justify-between border-t border-rule py-1">
           <span className="label">
@@ -325,7 +325,7 @@ function AffiliatesTable({
         className="mt-2 block text-left text-label leading-relaxed text-dim underline decoration-dotted underline-offset-2 transition-colors hover:text-focus"
       >
         SOURCES · {OWNERSHIP_THRESHOLD_NOTE.sources}. Ultimate-parent attribution is{" "}
-        <span className="text-modeled">MODELED</span> — inferred from filings, not per-part
+        <span className="text-modeled">MODELED</span> inferred from filings, not per-part
         observed. →
       </button>
     </div>
@@ -367,6 +367,13 @@ export function DocumentModal({
 
           return (
             <motion.div
+              // AnimatePresence tracks its children by key. Unkeyed, this
+              // overlay was registered under "" and React logged a duplicate
+              // key on every open, because the entering and exiting copies
+              // collided on the same empty key mid-transition. action.id also
+              // makes switching straight from one document to another animate
+              // as a swap instead of a mutation.
+              key={action.id}
               className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -383,7 +390,7 @@ export function DocumentModal({
                 className="flex max-h-[88vh] w-[640px] max-w-[94vw] flex-col border border-rule-strong bg-elevated"
                 style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.7)" }}
               >
-                {/* header — fixed */}
+                {/* header: fixed */}
                 <div className="flex shrink-0 items-center justify-between border-b border-rule px-2 py-1.5">
                   <div className="flex items-baseline gap-3">
                     <span className="text-value uppercase text-primary">
@@ -403,7 +410,7 @@ export function DocumentModal({
                   </button>
                 </div>
 
-                {/* body — scrolls internally when tall */}
+                {/* body: scrolls internally when tall */}
                 <div className="min-h-0 flex-1 overflow-auto px-2 py-1.5">
                   {/* reference block */}
                   <div className="border-b border-rule pb-1.5 text-label text-dim">
@@ -437,7 +444,7 @@ export function DocumentModal({
                     <LineItemTable action={action} lines={lines} />
                   )}
 
-                  {/* parameters — the action's real metrics */}
+                  {/* parameters: the action's real metrics */}
                   <SectionLabel>PARAMETERS</SectionLabel>
                   {action.metrics.map((m) => (
                     <Field
@@ -467,7 +474,7 @@ export function DocumentModal({
                     <Field key={t.k} k={t.k} v={t.v} />
                   ))}
 
-                  {/* authorization — role placeholders only */}
+                  {/* authorization: role placeholders only */}
                   <SectionLabel>AUTHORIZATION</SectionLabel>
                   <div className="grid grid-cols-3 gap-x-3 gap-y-2 pt-1.5">
                     {meta.signatories.map((role) => (
@@ -484,7 +491,7 @@ export function DocumentModal({
                   </div>
                 </div>
 
-                {/* footer — fixed */}
+                {/* footer: fixed */}
                 <div className="flex shrink-0 items-center justify-between border-t border-rule px-2 py-1.5">
                   <span className="text-label text-dim">
                     GENERATED BY GALLIUM · {meta.reviewLine}

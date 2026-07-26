@@ -27,7 +27,7 @@ function Item({ item, i, tick }: { item: TickerItem; i: number; tick: number }) 
   const flat = item.dir === "flat";
   // Two semantics only, and they are the two the ticker is about
   // (tokens.css RULE 4): --critical for a move against us, --ok for one
-  // in our favour. A flat row is neither — it gets the plain secondary
+  // in our favour. A flat row is neither, so it gets the plain secondary
   // text colour and no arrow (RULE 1: no fourth text colour, no semantic
   // one either, for a level that hasn't moved).
   const color = flat ? "var(--text-secondary)" : item.critical || up ? "var(--critical)" : "var(--ok)";

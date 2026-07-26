@@ -4,7 +4,7 @@ import { AppShell } from "@/components/chrome/AppShell";
 import { DemoStateProvider } from "@/lib/hooks/useDemoState";
 
 export const metadata: Metadata = {
-  title: "GALLIUM — Chip Supply Chain Shock Platform",
+  title: "GALLIUM · Chip Supply Chain Shock Platform",
   description: "Prototype running on representative data.",
 };
 

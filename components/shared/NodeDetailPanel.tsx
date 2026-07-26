@@ -1,6 +1,6 @@
 "use client";
 
-// Shared node-detail panel — the ONE detail surface reused by the RADAR map and
+// Shared node-detail panel: the ONE detail surface reused by the RADAR map and
 // the GRAPH canvas. Both build a `NodeDetail` and render it here; other agents
 // link into this component and its `NodeDetail` props type, so keep both stable.
 //
@@ -258,7 +258,7 @@ export function NodeDetailPanel({
                   </span>
                   <span
                     className="truncate text-label leading-body text-secondary"
-                    title={`${s.title} — ${s.publisher}`}
+                    title={`${s.title} · ${s.publisher}`}
                   >
                     {s.title}
                   </span>
