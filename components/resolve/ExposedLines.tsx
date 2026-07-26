@@ -1,13 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import type { BomLine } from "@/lib/types";
-import {
-  ACTION_CODE,
-  COMPLIANCE_LINES,
-  LINE_TO_ACTION,
-  MODELED_LINES,
-  OBSERVED_LINES,
-} from "@/components/resolve/rollup";
+import { ACTION_CODE } from "@/components/resolve/rollup";
+import type { ScenarioPlan } from "@/lib/derive/plan";
 
 // The left rail of RESOLVE: all 16 lines requiring action, one --row-h row
 // each at --fs-body, no wrapping. Three sections that sum to the reconciled
@@ -59,19 +55,19 @@ function SectionRow({ label, count }: { label: string; count: number }) {
 
 function LineRow({
   line,
+  actionId,
+  compliance,
   resolved,
   highlighted,
 }: {
   line: BomLine;
+  actionId: string | undefined;
+  /** Ownership-FLAGGED but NOT scenario-exposed: the affiliates axis. */
+  compliance: boolean;
   resolved: boolean;
   highlighted: boolean;
 }) {
   const modeled = line.provenance === "MODELED";
-  // Compliance line: ownership-FLAGGED but NOT quarantine-exposed. Distinct
-  // from a logistics EXPOSED line, reads FLAGGED until the LICENSE action
-  // screens it, then RESOLVED. Never --modeled (that means inferred).
-  const compliance = line.ownership === "FLAGGED" && line.status !== "EXPOSED";
-  const actionId = LINE_TO_ACTION[line.id];
 
   let state: string;
   let stateColor: string;
@@ -154,18 +150,31 @@ function LineRow({
 }
 
 export function ExposedLines({
+  plan,
   actionedIds,
   hoveredActionId,
 }: {
+  plan: ScenarioPlan;
   actionedIds: ReadonlySet<string>;
   hoveredActionId: string | null;
 }) {
-  const rowFor = (line: BomLine) => {
-    const actionId = LINE_TO_ACTION[line.id];
+  // line id -> the action that recovers it, under THIS scenario's coverage.
+  const lineToAction = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of plan.actions) {
+      for (const l of a.covers) m.set(l.id, a.action.id);
+    }
+    return m;
+  }, [plan]);
+
+  const rowFor = (line: BomLine, compliance = false) => {
+    const actionId = lineToAction.get(line.id);
     return (
       <LineRow
         key={line.id}
         line={line}
+        actionId={actionId}
+        compliance={compliance}
         resolved={Boolean(actionId && actionedIds.has(actionId))}
         highlighted={Boolean(actionId && actionId === hoveredActionId)}
       />
@@ -176,15 +185,22 @@ export function ExposedLines({
     <div className="flex h-full min-h-0 flex-col">
       <HeadRow />
       <div className="min-h-0 flex-1 overflow-auto">
-        <SectionRow label="Observed · logistics" count={OBSERVED_LINES.length} />
-        {OBSERVED_LINES.map(rowFor)}
+        <SectionRow label="Observed · logistics" count={plan.observedExposed.length} />
+        {plan.observedExposed.map((l) => rowFor(l))}
 
-        <SectionRow label="Compliance · affiliates" count={COMPLIANCE_LINES.length} />
-        {COMPLIANCE_LINES.map(rowFor)}
+        <SectionRow label="Compliance · affiliates" count={plan.complianceLines.length} />
+        {plan.complianceLines.map((l) => rowFor(l, true))}
 
-        <SectionRow label="Modeled · inferred" count={MODELED_LINES.length} />
-        {MODELED_LINES.map((line) => (
-          <LineRow key={line.id} line={line} resolved={false} highlighted={false} />
+        <SectionRow label="Modeled · inferred" count={plan.modeledExposed.length} />
+        {plan.modeledExposed.map((line) => (
+          <LineRow
+            key={line.id}
+            line={line}
+            actionId={undefined}
+            compliance={false}
+            resolved={false}
+            highlighted={false}
+          />
         ))}
 
         <div className="border-t border-rule px-2 py-1.5 text-label leading-relaxed text-dim">

@@ -1,45 +1,55 @@
 "use client";
 
-import { ACTIONS, OBSERVED_RESOLVABLE, MODELED_FLAGGED } from "@/lib/data/actions";
-import { IMPACT } from "@/lib/data/event";
 import { BUFFER_DAYS, recoveredDaysToHalt } from "@/lib/derive/halt";
 import { MODELED_NOTE } from "@/lib/data/bom";
 import { Metric } from "@/components/ui/Metric";
 import { useCountUp } from "@/lib/hooks/useCountUp";
-import {
-  ACTION_CODE,
-  ACTION_ROLLUP,
-  MODELED_LINES,
-  money,
-  rollup,
-} from "@/components/resolve/rollup";
+import { ACTION_CODE, money } from "@/components/resolve/rollup";
+import type { ScenarioPlan } from "@/lib/derive/plan";
 
 // Live rollup for the right rail. Metric treatment is deliberately identical
 // to components/radar/ImpactSummary.tsx: 10px label, 32px value, 300ms
 // count-up, so RADAR and RESOLVE read as one instrument.
-
-// Inventory cover at the moment of the event. Derived in lib/derive/halt.ts
-// and read through IMPACT so RESOLVE, RADAR and PORTFOLIO cannot disagree.
-const BASE_DAYS = IMPACT.daysToHalt;
+//
+// Every figure derives from the ScenarioPlan (lib/derive/plan.ts), which is
+// the same model RADAR's simulate control drives, so the two rails cannot
+// disagree about one scenario. At the default control the plan reproduces
+// the authored figures exactly (guarded).
 
 export function ActionImpact({
+  plan,
   actionedIds,
+  showScenario,
   onHoverAction,
 }: {
+  plan: ScenarioPlan;
   actionedIds: ReadonlySet<string>;
+  /** True for a simulated (non-default) scenario: renders the gap line and
+   *  the honest no-plan state, same (SIM) convention as RADAR. */
+  showScenario?: boolean;
   onHoverAction?: (id: string | null) => void;
 }) {
-  const totals = rollup(actionedIds);
-  const complete = totals.lines >= OBSERVED_RESOLVABLE;
+  const BASE_DAYS = plan.halt.daysToHalt;
 
-  // The ledger now accounts for all four actions. The compliance action
-  // (kind LICENSE) recovers 2 lines but contributes no cost/capital/schedule/
-  // days. Its detail line is rendered on the compliance axis (below) rather
-  // than as "$0 · +0 DAYS".
-  const ledgerActions = ACTIONS;
-  const ledgerActioned = ledgerActions.filter((a) =>
-    actionedIds.has(a.id)
-  ).length;
+  // The ledger accounts for every action the resolver proposes under this
+  // scenario. The compliance action (kind LICENSE) recovers 2 lines but
+  // contributes no cost/capital/schedule/days; its detail line renders on
+  // the compliance axis rather than as "$0 · +0 DAYS".
+  const ledgerActions = plan.actions.filter((a) => a.active);
+  const actioned = ledgerActions.filter((a) => actionedIds.has(a.action.id));
+  const ledgerActioned = actioned.length;
+
+  const totals = {
+    lines: actioned.reduce((n, a) => n + a.recovers, 0),
+    incrementalCost: actioned.reduce((n, a) => n + a.incrementalCost, 0),
+    capital: actioned.reduce((n, a) => n + a.capital, 0),
+    scheduleWeeks: actioned.reduce((n, a) => Math.max(n, a.scheduleWeeks), 0),
+    daysGained: actioned
+      .filter((a) => a.action.kind !== "LICENSE")
+      .reduce((n, a) => n + a.daysGained, 0),
+  };
+  const complete = totals.lines >= plan.observedResolvable;
+  const buyPlanned = plan.actions.find((a) => a.action.kind === "BUY_AHEAD");
 
   // Runway is held to the buffer that actually exists. Re-routing a line
   // restores a route; it does not create inventory, so the recovered figure
@@ -66,13 +76,13 @@ export function ActionImpact({
         value={
           <>
             {Math.round(lines)}
-            <span className="text-dim"> / {OBSERVED_RESOLVABLE}</span>
+            <span className="text-dim"> / {plan.observedResolvable}</span>
           </>
         }
         tone={totals.lines > 0 ? "var(--focus)" : "var(--text-primary)"}
         sub={
           <>
-            <span className="text-modeled">{MODELED_FLAGGED} MODELED</span>{" "}
+            <span className="text-modeled">{plan.modeledExposed.length} MODELED</span>{" "}
             FLAGGED, NOT RESOLVED
           </>
         }
@@ -89,7 +99,11 @@ export function ActionImpact({
         label="Capital Required"
         value={money(capital)}
         tone="var(--text-primary)"
-        sub={totals.capital > 0 ? "11 WEEKS FORWARD COVERAGE" : "NO POSITION TAKEN"}
+        sub={
+          totals.capital > 0 && buyPlanned?.coverageWeeks
+            ? `${buyPlanned.coverageWeeks} WEEKS FORWARD COVERAGE`
+            : "NO POSITION TAKEN"
+        }
       />
 
       <Metric
@@ -114,6 +128,20 @@ export function ActionImpact({
         }
       />
 
+      {/* The honest failure state. Only reachable in a simulated scenario
+          severe enough that even the full action set cannot cover what the
+          disruption consumed; the product says so instead of manufacturing
+          a plan that works. */}
+      {showScenario && !plan.planCloses ? (
+        <div
+          className="pl-2 text-label leading-body text-critical"
+          style={{ borderLeft: "2px solid var(--critical)" }}
+        >
+          ⚠ NO COMBINATION CLOSES THE GAP: {plan.gapDays}D CONSUMED,{" "}
+          {plan.totalDaysGained}D RECOVERABLE ACROSS ALL PROPOSED ACTIONS.
+        </div>
+      ) : null}
+
       {/* per-action ledger: what each action contributed */}
       <div className="border-t border-rule pt-2">
         <div className="mb-2 flex items-center justify-between label">
@@ -124,8 +152,8 @@ export function ActionImpact({
         </div>
 
         <div className="flex flex-col gap-2">
-          {ledgerActions.map((a) => {
-            const r = ACTION_ROLLUP[a.id];
+          {ledgerActions.map((planned) => {
+            const a = planned.action;
             const on = actionedIds.has(a.id);
             return (
               <div
@@ -159,15 +187,15 @@ export function ActionImpact({
                 </div>
                 <div className="mt-1 text-label tabular-nums text-dim">
                   {a.kind === "LICENSE" ? (
-                    <>{a.recovers} LINES · AFFILIATES SCREENING · RED FLAG 29</>
+                    <>{planned.recovers} LINES · AFFILIATES SCREENING · RED FLAG 29</>
                   ) : (
                     <>
-                      {a.recovers} LINES ·{" "}
-                      {r.capital > 0
-                        ? `${money(r.capital)} CAP`
-                        : money(r.incrementalCost)}{" "}
-                      · +{r.daysGained} DAYS
-                      {r.scheduleWeeks > 0 ? ` · +${r.scheduleWeeks}W SCHED` : ""}
+                      {planned.recovers} LINES ·{" "}
+                      {planned.capital > 0
+                        ? `${money(planned.capital)} CAP`
+                        : money(planned.incrementalCost)}{" "}
+                      · +{planned.daysGained} DAYS
+                      {planned.scheduleWeeks > 0 ? ` · +${planned.scheduleWeeks}W SCHED` : ""}
                     </>
                   )}
                 </div>
@@ -181,9 +209,9 @@ export function ActionImpact({
       <div className="border-t border-rule pt-2">
         <div className="mb-2 flex items-center justify-between label">
           <span>Unresolved · Modeled</span>
-          <span className="tabular-nums">{MODELED_LINES.length}</span>
+          <span className="tabular-nums">{plan.modeledExposed.length}</span>
         </div>
-        {MODELED_LINES.map((line) => (
+        {plan.modeledExposed.map((line) => (
           <div
             key={line.id}
             className="flex items-baseline justify-between gap-2 text-body"

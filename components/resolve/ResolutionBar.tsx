@@ -1,6 +1,6 @@
 "use client";
 
-import { OBSERVED_RESOLVABLE, MODELED_FLAGGED } from "@/lib/data/actions";
+
 
 // Honest end state (DATA §0 truth ledger): the 13 OBSERVED RESOLVABLE lines
 // (11 logistics-exposed + 2 compliance) resolve as CTAs are actioned; the 3
@@ -13,11 +13,11 @@ import { OBSERVED_RESOLVABLE, MODELED_FLAGGED } from "@/lib/data/actions";
 // loader with three orphaned segments pinned to the far end.
 type Seg = "resolved" | "modeled" | "open";
 
-function segments(observedResolved: number): Seg[] {
+function segments(observedResolved: number, resolvable: number, modeledFlagged: number): Seg[] {
   return [
     ...Array<Seg>(observedResolved).fill("resolved"),
-    ...Array<Seg>(MODELED_FLAGGED).fill("modeled"),
-    ...Array<Seg>(OBSERVED_RESOLVABLE - observedResolved).fill("open"),
+    ...Array<Seg>(modeledFlagged).fill("modeled"),
+    ...Array<Seg>(Math.max(0, resolvable - observedResolved)).fill("open"),
   ];
 }
 
@@ -32,9 +32,19 @@ const STROKE: Record<Seg, string> = {
   open: "var(--rule)",
 };
 
-export function ResolutionBar({ resolved }: { resolved: number }) {
-  const observedResolved = Math.min(resolved, OBSERVED_RESOLVABLE);
-  const open = OBSERVED_RESOLVABLE - observedResolved;
+export function ResolutionBar({
+  resolved,
+  resolvable,
+  modeledFlagged,
+}: {
+  resolved: number;
+  /** OBSERVED RESOLVABLE under the current scenario (13 at the default). */
+  resolvable: number;
+  /** Modeled exposed lines under the current scenario (3 at the default). */
+  modeledFlagged: number;
+}) {
+  const observedResolved = Math.min(resolved, resolvable);
+  const open = Math.max(0, resolvable - observedResolved);
 
   return (
     <div className="flex shrink-0 items-center gap-3 border-b border-rule px-2 py-1.5">
@@ -47,14 +57,14 @@ export function ResolutionBar({ resolved }: { resolved: number }) {
         </span>
         <span className="text-dim">·</span>
         <span className="tabular-nums text-modeled">
-          {MODELED_FLAGGED} MODELED FLAGGED
+          {modeledFlagged} MODELED FLAGGED
         </span>
         <span className="text-dim">·</span>
         <span className="tabular-nums text-dim">{open} OPEN</span>
       </div>
 
       <div className="flex min-w-0 flex-1 gap-px">
-        {segments(observedResolved).map((seg, i) => (
+        {segments(observedResolved, resolvable, modeledFlagged).map((seg, i) => (
           <div
             key={i}
             className="h-3 flex-1"

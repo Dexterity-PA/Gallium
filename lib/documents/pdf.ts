@@ -277,9 +277,18 @@ function drawFooters(doc: PDFDocument, font: PDFFont, reviewLine: string) {
  * client-side (or in any Node runtime) via pdf-lib -- no headless
  * browser, so it is safe inside Vercel's function limits.
  */
-export async function generateDocumentPdf(action: Action): Promise<Uint8Array> {
+export async function generateDocumentPdf(
+  action: Action,
+  scope?: import("@/lib/derive/plan").DocScope
+): Promise<Uint8Array> {
   const meta = DOC_META[action.kind];
-  const lines = linesFor(action.id);
+  // Scenario scope (lib/derive/plan.ts docScopeFor): the covered lines and
+  // patched figures for the CURRENT scenario. Absent, the authored defaults
+  // apply, which are the same thing at the default control.
+  const lines = scope?.lines ?? linesFor(action.id);
+  const metrics = scope?.metrics ?? action.metrics;
+  const recovers = scope?.recovers ?? action.recovers;
+  const observedTotal = scope?.observedTotal ?? OBSERVED_EXPOSED;
   const isLicense = action.kind === "LICENSE";
 
   const doc = await PDFDocument.create();
@@ -328,11 +337,11 @@ export async function generateDocumentPdf(action: Action): Promise<Uint8Array> {
 
   // ---- parameters ----
   w.sectionLabel("PARAMETERS");
-  for (const m of action.metrics) {
+  for (const m of metrics) {
     w.field(m.label, m.note ? `${m.value}  (${m.note})` : m.value, m.warn ? COLOR.critical : COLOR.ink);
   }
   if (!isLicense) {
-    w.field("OBSERVED RESOLVED", `${action.recovers} of ${OBSERVED_EXPOSED}`, COLOR.focus);
+    w.field("OBSERVED RESOLVED", `${recovers} of ${observedTotal}`, COLOR.focus);
   }
 
   if (action.warning) {

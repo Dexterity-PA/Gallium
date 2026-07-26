@@ -14,6 +14,7 @@ import {
   type ScenarioHaltBreakdown,
 } from "@/lib/derive/scenario";
 import { recoveredDaysToHalt, BUFFER_DAYS } from "@/lib/derive/halt";
+import { money } from "@/components/resolve/rollup";
 
 /* ============================================================
    THE RESOLUTION PLAN: what the four authored actions are worth under a
@@ -256,4 +257,48 @@ export function capBinds(plan: ScenarioPlan, actionedIds: ReadonlySet<string>): 
     .filter((a) => a.action.kind !== "LICENSE" && actionedIds.has(a.action.id))
     .reduce((n, a) => n + a.daysGained, 0);
   return plan.halt.daysToHalt + gained > BUFFER_DAYS;
+}
+
+/** The authored metric strip with the scenario-derived figures patched in
+ *  (freight cost, coverage weeks, capital). Shared by the action card, the
+ *  document modal and the PDF so the three cannot disagree. At the default
+ *  scenario every patched string equals the authored one byte for byte. */
+export function scenarioMetricsFor(planned: PlannedAction): Action["metrics"] {
+  const action = planned.action;
+  return action.metrics.map((m) => {
+    if (action.kind === "EXPEDITE" && m.label === "INCREMENTAL COST") {
+      return { ...m, value: money(planned.incrementalCost) };
+    }
+    if (action.kind === "BUY_AHEAD" && m.label === "RECOMMENDED BUY" && planned.coverageWeeks) {
+      return {
+        ...m,
+        value: `${planned.coverageWeeks} WEEKS COVERAGE`,
+        note: planned.coverageCapped ? "CHANNEL DEPTH CAP" : m.note,
+      };
+    }
+    if (action.kind === "BUY_AHEAD" && m.label === "CAPITAL REQUIRED") {
+      return { ...m, value: money(planned.capital) };
+    }
+    return m;
+  });
+}
+
+/** What the RESOLVE documents need to know about the scenario: the covered
+ *  lines, the patched metrics, and the resolvable totals. */
+export interface DocScope {
+  lines: BomLine[];
+  metrics: Action["metrics"];
+  recovers: number;
+  observedTotal: number;
+}
+
+export function docScopeFor(plan: ScenarioPlan, actionId: string): DocScope | null {
+  const planned = plan.actions.find((a) => a.action.id === actionId);
+  if (!planned) return null;
+  return {
+    lines: planned.covers,
+    metrics: scenarioMetricsFor(planned),
+    recovers: planned.recovers,
+    observedTotal: plan.observedExposed.length,
+  };
 }

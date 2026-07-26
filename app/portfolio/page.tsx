@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { CUSTOMER } from "@/lib/data/customer";
 import {
-  PORTFOLIO,
   PORTFOLIO_QUIET,
+  portfolioFor,
   riskLabel,
   rollup,
 } from "@/lib/data/portfolio";
+import { useScenario } from "@/lib/hooks/useScenario";
+import { ORIGIN_OPTIONS } from "@/lib/data/scenario";
 import { PortfolioAlert } from "@/components/portfolio/PortfolioAlert";
 import { PortfolioTable } from "@/components/portfolio/PortfolioTable";
 import { Metric } from "@/components/ui/Metric";
@@ -62,8 +64,20 @@ export default function PortfolioPage() {
     return () => clearTimeout(t);
   }, []);
 
-  const rows = live ? PORTFOLIO : PORTFOLIO_QUIET;
+  // All seven products derive through the same exposure function the
+  // simulate control drives (lib/derive/scenario.ts). At the default
+  // control this IS the scripted PORTFOLIO (same object); any other
+  // control re-scores every row through the model. Row order stays the
+  // default ranking either way, so the table never re-sorts underfoot.
+  const { control, isDefault } = useScenario();
+  const scenarioRows = useMemo(() => portfolioFor(control), [control]);
+  const rows = live ? scenarioRows : PORTFOLIO_QUIET;
   const totals = useMemo(() => rollup(rows), [rows]);
+  const simulatedLabel = isDefault
+    ? null
+    : `SIMULATED · ${(
+        ORIGIN_OPTIONS.find((o) => o.id === control.originId)?.label ?? control.originId
+      ).toUpperCase()} · ${control.severity} · ${control.durationDays}D`;
 
   // The worst-hit product is row 1: the table is ranked by value at risk and
   // held in that order across both states, so the band and the blotter cannot
@@ -91,7 +105,7 @@ export default function PortfolioPage() {
         </div>
 
         {/* the alert band */}
-        <PortfolioAlert live={live} totals={totals} worst={worst} />
+        <PortfolioAlert live={live} totals={totals} worst={worst} simulatedLabel={simulatedLabel} />
 
         {/* rollup - the "this is your business" read, all of it reduced
             over the rows below, none of it authored */}

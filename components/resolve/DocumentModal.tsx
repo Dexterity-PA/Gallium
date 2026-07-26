@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { Action, BomLine } from "@/lib/types";
 import { OBSERVED_EXPOSED } from "@/lib/data/actions";
 import { linesFor, money } from "@/components/resolve/rollup";
+import type { DocScope } from "@/lib/derive/plan";
 import { OWNERSHIP_THRESHOLD_NOTE } from "@/lib/data/bom";
 import { CUSTOMER } from "@/lib/data/customer";
 import { SourcePanel } from "@/components/shared/SourcePanel";
@@ -229,9 +230,14 @@ function AffiliatesTable({
 
 export function DocumentModal({
   action,
+  scope,
   onClose,
 }: {
   action: Action | null;
+  /** Scenario document scope (lib/derive/plan.ts docScopeFor): covered
+   *  lines and patched figures for the current scenario. Absent, the
+   *  authored defaults apply (identical at the default control). */
+  scope?: DocScope | null;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -256,21 +262,25 @@ export function DocumentModal({
 
   // Real vector PDF export (lib/documents/pdf.ts), built off the same
   // derivation this modal renders. Runs client-side, no headless browser.
-  const handleDownload = useCallback(async (a: Action) => {
-    setGenerating(true);
-    try {
-      await downloadDocumentPdf(a);
-    } finally {
-      setGenerating(false);
-    }
-  }, []);
+  const handleDownload = useCallback(
+    async (a: Action) => {
+      setGenerating(true);
+      try {
+        await downloadDocumentPdf(a, scope ?? undefined);
+      } finally {
+        setGenerating(false);
+      }
+    },
+    [scope]
+  );
 
   return (
     <AnimatePresence>
       {action ? (
         (() => {
           const meta = DOC_META[action.kind];
-          const lines = linesFor(action.id);
+          const lines = scope?.lines ?? linesFor(action.id);
+          const metrics = scope?.metrics ?? action.metrics;
           const isLicense = action.kind === "LICENSE";
 
           return (
@@ -354,7 +364,7 @@ export function DocumentModal({
 
                   {/* parameters: the action's real metrics */}
                   <SectionLabel>PARAMETERS</SectionLabel>
-                  {action.metrics.map((m) => (
+                  {metrics.map((m) => (
                     <Field
                       key={m.label}
                       k={m.label}
@@ -365,7 +375,7 @@ export function DocumentModal({
                   {!isLicense ? (
                     <Field
                       k="OBSERVED RESOLVED"
-                      v={`${action.recovers} of ${OBSERVED_EXPOSED}`}
+                      v={`${scope?.recovers ?? action.recovers} of ${scope?.observedTotal ?? OBSERVED_EXPOSED}`}
                       accent="resolved"
                     />
                   ) : null}

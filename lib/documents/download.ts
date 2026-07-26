@@ -9,8 +9,11 @@ import { filenameFor } from "@/lib/documents/content";
  * entirely client-side (pdf-lib in the browser bundle), same pattern
  * as the existing CSV-template download in components/entry/EntryScreen.tsx.
  */
-export async function downloadDocumentPdf(action: Action): Promise<void> {
-  const bytes = await generateDocumentPdf(action);
+export async function downloadDocumentPdf(
+  action: Action,
+  scope?: import("@/lib/derive/plan").DocScope
+): Promise<void> {
+  const bytes = await generateDocumentPdf(action, scope);
   const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

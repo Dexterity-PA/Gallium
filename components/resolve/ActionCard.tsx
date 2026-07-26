@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import type { Action, BomLine } from "@/lib/types";
-import { ACTION_CODE, linesFor } from "@/components/resolve/rollup";
+import { ACTION_CODE } from "@/components/resolve/rollup";
+import {
+  scenarioMetricsFor,
+  type PlannedAction,
+  type Sufficiency,
+} from "@/lib/derive/plan";
 import {
   alternatesFor,
   ERP_BLIND_ALTERNATE_NOTE,
@@ -126,19 +131,36 @@ function MetricCell({
   );
 }
 
+const SUFFICIENCY_LABEL: Record<Sufficiency, string | null> = {
+  SUFFICIENT_ALONE: "SUFFICIENT ALONE",
+  ADDITIONAL_COVERAGE: "ADDITIONAL COVERAGE",
+  COMPLIANCE_AXIS: null,
+};
+
 export function ActionCard({
   action,
+  planned,
   actioned,
+  showSufficiency,
   onGenerate,
   onHover,
 }: {
   action: Action;
+  /** This action's scenario-derived coverage and arithmetic (lib/derive/
+   *  plan.ts). At the default scenario it reproduces the authored figures. */
+  planned: PlannedAction;
   actioned: boolean;
+  /** Sufficiency tags render only for a simulated (non-default) scenario,
+   *  same convention as the Impact panel's (SIM) marker. */
+  showSufficiency?: boolean;
   onGenerate: (a: Action) => void;
   onHover?: (id: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const covered = linesFor(action.id);
+  const covered = planned.covers;
+  const recovers = planned.recovers;
+  const metrics = scenarioMetricsFor(planned);
+  const sufficiencyLabel = showSufficiency ? SUFFICIENCY_LABEL[planned.sufficiency] : null;
   const alternates = action.kind === "SUBSTITUTE" ? rankedAlternates(covered) : [];
 
   // The demo-pinned pair (components/exposure/derive.ts): ISO5852SDW-A8
@@ -190,17 +212,30 @@ export function ActionCard({
             ✓ ACTIONED
           </span>
         ) : null}
+        {sufficiencyLabel ? (
+          <span
+            className="shrink-0 text-label"
+            style={{
+              color:
+                planned.sufficiency === "SUFFICIENT_ALONE"
+                  ? "var(--focus)"
+                  : "var(--text-dim)",
+            }}
+          >
+            {sufficiencyLabel}
+          </span>
+        ) : null}
         {action.kind === "LICENSE" ? (
-          // Compliance axis. Derived from `recovers` (now 2, part of the 13
-          // OBSERVED RESOLVABLE). Kept neutral rather than green and worded
+          // Compliance axis. Derived from the plan's coverage (2, part of the
+          // 13 OBSERVED RESOLVABLE). Kept neutral rather than green and worded
           // "COVERS" not "+N" so it reads as the separate affiliates axis, not
           // a freight/inventory recovery.
           <span className="shrink-0 tabular-nums text-body font-medium text-secondary">
-            COVERS {action.recovers} LINES
+            COVERS {recovers} LINES
           </span>
         ) : (
           <span className="shrink-0 tabular-nums text-body font-medium text-focus">
-            +{action.recovers} LINES
+            +{recovers} LINES
           </span>
         )}
       </button>
@@ -216,7 +251,7 @@ export function ActionCard({
             className="grid border-y border-rule"
             style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}
           >
-            {action.metrics.map((m, i) => (
+            {metrics.map((m, i) => (
               <MetricCell
                 key={m.label}
                 label={m.label}
@@ -364,7 +399,7 @@ export function ActionCard({
               <span className="text-label text-focus">
                 {action.kind === "LICENSE"
                   ? "● LICENSE PACKET GENERATED"
-                  : `● ${action.recovers} OBSERVED LINES RESOLVED`}
+                  : `● ${recovers} OBSERVED LINES RESOLVED`}
               </span>
             ) : null}
           </div>

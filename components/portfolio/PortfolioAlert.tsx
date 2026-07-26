@@ -37,14 +37,19 @@ export function PortfolioAlert({
   live,
   totals,
   worst,
+  simulatedLabel,
 }: {
   live: boolean;
   /** Reduced over the rows the table renders. Never authored. */
   totals: PortfolioRollup;
   /** The product carrying the most value at risk. */
   worst: PortfolioProduct;
+  /** Non-null when the simulate control is off its default: the band names
+   *  the simulated scenario instead of the scripted event, so the screen
+   *  never attributes simulated numbers to the real incident. */
+  simulatedLabel?: string | null;
 }) {
-  if (!live) {
+  if (!live || (simulatedLabel && totals.exposedLines === 0)) {
     return (
       <div
         className="flex shrink-0 items-center justify-between border-b border-rule pl-4 py-3"
@@ -52,11 +57,14 @@ export function PortfolioAlert({
       >
         <div className="min-w-0">
           <div className="text-value leading-tight text-secondary">
-            ● PORTFOLIO WATCH
+            ● PORTFOLIO WATCH{simulatedLabel ? ` · ${simulatedLabel}` : ""}
           </div>
           <div className="text-body text-dim">
-            {`No active incident. Monitoring ${totals.products} products against ` +
-              `${totals.bomLines} resolved bill-of-materials lines.`}
+            {simulatedLabel
+              ? `Simulated scenario touches no resolved supply path. ` +
+                `${totals.products} products, ${totals.bomLines} lines, all clear of the affected node.`
+              : `No active incident. Monitoring ${totals.products} products against ` +
+                `${totals.bomLines} resolved bill-of-materials lines.`}
           </div>
         </div>
       </div>
@@ -78,7 +86,7 @@ export function PortfolioAlert({
           className="truncate text-value leading-tight"
           style={{ color: "var(--critical)", fontWeight: 600 }}
         >
-          ▲ {EVENT_NAME}
+          ▲ {simulatedLabel ?? EVENT_NAME}
         </div>
         {/* One template string, not a run of JSX text nodes. The band is a
             sentence with eight interpolations in it and JSX whitespace between

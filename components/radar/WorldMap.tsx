@@ -27,6 +27,8 @@ import {
   PROPAGATION_ORIGIN_ID,
 } from "@/lib/data/graph";
 import type { GraphNode } from "@/lib/types";
+import { useScenario } from "@/lib/hooks/useScenario";
+import { scenarioGraphView, affectedRadius, scenarioStatus } from "@/lib/derive/scenario";
 import {
   NodeDetailPanel,
   nodeDetailFromSite,
@@ -82,19 +84,29 @@ interface Lane {
   modeled: boolean;
 }
 
-const LANES: Lane[] = GRAPH.edges.flatMap((e, i) => {
-  const a = NODE_BY_ID.get(e.source);
-  const b = NODE_BY_ID.get(e.target);
-  if (!a || !b || a.id === b.id) return [];
-  const lit = EXPOSED_PATH.has(a.id) && EXPOSED_PATH.has(b.id);
-  const isProcurement = a.id === CUSTOMER_NODE_ID || b.id === CUSTOMER_NODE_ID;
-  const tier: Tier = FREIGHT_LEGS.has(`${a.id}|${b.id}`)
-    ? "freight"
-    : !lit || isProcurement
-    ? "context"
-    : "propagation";
-  return [{ key: `${e.source}|${e.target}|${i}`, a, b, tier, modeled: e.provenance === "MODELED" }];
-});
+/** Lane tiers for a given exposed-path set. The default set produces the
+ *  scripted lanes; the scenario control (lib/derive/scenario.ts
+ *  scenarioGraphView) swaps in its own set and every red lane on the map
+ *  moves with it. The freight tier only exists while the stuck freight's
+ *  route is part of the story (its nodes are in the set), which is exactly
+ *  the Kaohsiung-origin scenarios. */
+function lanesFor(exposedPath: ReadonlySet<string>): Lane[] {
+  return GRAPH.edges.flatMap((e, i) => {
+    const a = NODE_BY_ID.get(e.source);
+    const b = NODE_BY_ID.get(e.target);
+    if (!a || !b || a.id === b.id) return [];
+    const lit = exposedPath.has(a.id) && exposedPath.has(b.id);
+    const isProcurement = a.id === CUSTOMER_NODE_ID || b.id === CUSTOMER_NODE_ID;
+    const tier: Tier = FREIGHT_LEGS.has(`${a.id}|${b.id}`) && lit
+      ? "freight"
+      : !lit || isProcurement
+      ? "context"
+      : "propagation";
+    return [{ key: `${e.source}|${e.target}|${i}`, a, b, tier, modeled: e.provenance === "MODELED" }];
+  });
+}
+
+const LANES: Lane[] = lanesFor(EXPOSED_PATH);
 
 const CONTEXT_LANES = LANES.filter((l) => l.tier === "context");
 const LIT_LANES = LANES.filter((l) => l.tier !== "context");
@@ -126,9 +138,10 @@ const REAL_EDGE_CUTOFF = (() => {
 // frozen picture. Deliberately excludes anything touching a BOM or CUSTOMER
 // node: those are commercial relationships, not physical shipments. Capped
 // at three (see the animated-lane total where these are drawn).
-const SHIPPING_CONTEXT_LANES = CONTEXT_LANES.filter(
-  (l) => isSiteKind(l.a.kind) && isSiteKind(l.b.kind)
-).slice(0, 3);
+function shippingContextLanes(contextLanes: Lane[]): Lane[] {
+  return contextLanes.filter((l) => isSiteKind(l.a.kind) && isSiteKind(l.b.kind)).slice(0, 3);
+}
+const SHIPPING_LANES_DEFAULT = shippingContextLanes(CONTEXT_LANES);
 
 // ---- framing ------------------------------------------------------------
 // Same projection decision as before: ONE scale factor on both axes, so
@@ -280,21 +293,24 @@ const formatCoord = (lngRaw: number, latRaw: number) => {
   );
 };
 
-// Parts affected per site, from BOM actualExposure region tokens.
-const AFFECTED: Record<string, number> = (() => {
-  const tok: Record<string, string> = {
-    "NODE-KHH-ASE": "KAOHSIUNG",
-    "NODE-HSC": "HSINCHU",
-    "NODE-TPE": "TPE",
-  };
+// Parts affected per site, from BOM actualExposure region tokens, counted
+// over whichever exposure set the scenario produces (the default control
+// reproduces the scripted counts; a scenario that clears a site shows 0).
+const AFFECTED_TOKENS: Record<string, string> = {
+  "NODE-KHH-ASE": "KAOHSIUNG",
+  "NODE-HSC": "HSINCHU",
+  "NODE-TPE": "TPE",
+};
+function affectedCounts(exposedBom: readonly (typeof BOM)[number][]): Record<string, number> {
   const out: Record<string, number> = {};
-  for (const id of Object.keys(tok)) {
-    out[id] = BOM.filter(
-      (b) => b.status === "EXPOSED" && b.actualExposure?.includes(tok[id])
-    ).length;
+  for (const id of Object.keys(AFFECTED_TOKENS)) {
+    out[id] = exposedBom.filter((b) => b.actualExposure?.includes(AFFECTED_TOKENS[id])).length;
   }
   return out;
-})();
+}
+const AFFECTED: Record<string, number> = affectedCounts(
+  BOM.filter((b) => b.status === "EXPOSED")
+);
 
 // ---- the two nodes the screen is about ----------------------------------
 // Everything else on the map is unlabelled. Naming two things names the story;
@@ -403,6 +419,45 @@ export function WorldMap({
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [hover, setHover] = useState<PlacedNode | null>(null);
   const [selected, setSelected] = useState<PlacedNode | null>(null);
+
+  // ---- the scenario's view of the network ---------------------------------
+  // At the default control everything below is the exact module constant
+  // (same object identity), so the scripted frame is untouched. Any other
+  // control recolors lanes and nodes from the scenario's own exposure set:
+  // more exposed lines is more red lanes, deeper severity is deeper reach.
+  // The camera (story frame, pan limits) deliberately does NOT move with the
+  // scenario: a stable frame is what makes the recolor legible.
+  const { control, isDefault: scenarioIsDefault } = useScenario();
+  const scenarioView = useMemo(
+    () => (scenarioIsDefault ? null : scenarioGraphView(control)),
+    [control, scenarioIsDefault]
+  );
+  const exposedPath = useMemo(
+    () => (scenarioView ? new Set(scenarioView.exposedPathIds) : EXPOSED_PATH),
+    [scenarioView]
+  );
+  const lanes = useMemo(
+    () => (scenarioView ? lanesFor(exposedPath) : LANES),
+    [scenarioView, exposedPath]
+  );
+  const contextLanes = useMemo(
+    () => (scenarioView ? lanes.filter((l) => l.tier === "context") : CONTEXT_LANES),
+    [scenarioView, lanes]
+  );
+  const litLanes = useMemo(
+    () => (scenarioView ? lanes.filter((l) => l.tier !== "context") : LIT_LANES),
+    [scenarioView, lanes]
+  );
+  const shippingLanes = useMemo(
+    () => (scenarioView ? shippingContextLanes(contextLanes) : SHIPPING_LANES_DEFAULT),
+    [scenarioView, contextLanes]
+  );
+  const affected = useMemo(() => {
+    if (!scenarioView) return AFFECTED;
+    const radius = affectedRadius(control.originId, control.severity);
+    return affectedCounts(BOM.filter((b) => scenarioStatus(b, radius) === "EXPOSED"));
+  }, [scenarioView, control]);
+  const originId = control.originId;
   // null = the derived HOME view. Kept as an override rather than a value so
   // that a resize before any interaction re-frames automatically, and reset
   // is just "forget the override".
@@ -569,10 +624,10 @@ export function WorldMap({
     const baseFn: ProjectFn = (lng, lat) => projection([lng, lat]) as [number, number];
     const seg = (l: Lane) => laneD(l.a.lng, l.a.lat, l.b.lng, l.b.lat, baseFn);
     return {
-      observed: CONTEXT_LANES.filter((l) => !l.modeled).map(seg).join(" "),
-      modeled: CONTEXT_LANES.filter((l) => l.modeled).map(seg).join(" "),
+      observed: contextLanes.filter((l) => !l.modeled).map(seg).join(" "),
+      modeled: contextLanes.filter((l) => l.modeled).map(seg).join(" "),
     };
-  }, [projection]);
+  }, [projection, contextLanes]);
 
   // fly-to animation handle (declared early: pan/zoom/reset all cancel it)
   const flyRaf = useRef(0);
@@ -790,10 +845,10 @@ export function WorldMap({
     // touches (e.g. a manufacturing site with no exposure of its own, like
     // Dallas), or narrowing the scope while isolating would strand the very
     // markers the isolate view is trying to show.
-    const keep = new Set(EXPOSED_PATH);
+    const keep = new Set(exposedPath);
     if (isolateData) for (const id of isolateData.nodeIds) keep.add(id);
     return NODES.filter((n) => keep.has(n.id));
-  }, [fullNetwork, isolateData]);
+  }, [fullNetwork, isolateData, exposedPath]);
 
   const selectNode = useCallback((n: PlacedNode) => {
     setSelected((cur) => (cur?.id === n.id ? null : n));
@@ -805,19 +860,19 @@ export function WorldMap({
     setFullNetwork((on) => {
       const next = !on;
       if (!next) {
-        setSelected((s) => (s && EXPOSED_PATH.has(s.id) ? s : null));
+        setSelected((s) => (s && exposedPath.has(s.id) ? s : null));
         setHover(null);
       }
       return next;
     });
-  }, []);
+  }, [exposedPath]);
 
   // Meridian's plant and the nine mapped sites carry a richer record than the
   // graph node does (function text, their own provenance documents), so the map
   // prefers it and falls back to the graph node for the other eighty.
   const detailFor = useCallback((n: PlacedNode): NodeDetail => {
     const site = SITE_BY_ID.get(SITE_ALIAS[n.id] ?? n.id);
-    if (site) return nodeDetailFromSite(site, { affected: AFFECTED[site.id] ?? 0 });
+    if (site) return nodeDetailFromSite(site, { affected: affected[site.id] ?? 0 });
     return {
       id: n.id,
       title: n.label,
@@ -828,7 +883,7 @@ export function WorldMap({
       fields: [{ label: "Coordinates", value: `${n.lat.toFixed(2)}, ${n.lng.toFixed(2)}` }],
       origin: "map",
     };
-  }, []);
+  }, [affected]);
 
   const coord = useMemo(() => {
     if (!cursor) return null;
@@ -932,7 +987,7 @@ export function WorldMap({
               isolate, only the isolated part's own edges (drawn on their own
               layer just below) stay red; everything else here drops to the
               quietest tier alongside the context mesh, and stops moving. */}
-          {LIT_LANES.map((l) => {
+          {litLanes.map((l) => {
             const d = laneD(l.a.lng, l.a.lat, l.b.lng, l.b.lat, project);
             const isFreight = l.tier === "freight";
             const isStallLeg =
@@ -1061,7 +1116,7 @@ export function WorldMap({
               context, not incident. Quieter (and un-staggered motion aside,
               otherwise unchanged) during isolate, same as everything else on
               this layer. */}
-          {SHIPPING_CONTEXT_LANES.map((l, i) => {
+          {shippingLanes.map((l, i) => {
             const d = laneD(l.a.lng, l.a.lat, l.b.lng, l.b.lat, project);
             return (
               <g key={`ship-${l.key}`} pointerEvents="none">
@@ -1095,9 +1150,9 @@ export function WorldMap({
             // the exposed path": everything the default view would light up
             // that isn't part of THIS part's story drops to the same quiet
             // dot as the rest of the network.
-            const lit = isolateData ? isolateData.nodeIds.has(n.id) : EXPOSED_PATH.has(n.id);
+            const lit = isolateData ? isolateData.nodeIds.has(n.id) : exposedPath.has(n.id);
             const isCustomer = n.id === CUSTOMER_NODE_ID;
-            const isOrigin = n.id === PROPAGATION_ORIGIN_ID;
+            const isOrigin = n.id === originId;
             const isSel = selected?.id === n.id;
 
             if (!lit) {
@@ -1315,7 +1370,7 @@ export function WorldMap({
           <span aria-hidden>{fullNetwork ? "▣" : "▢"}</span>{" "}
           {fullNetwork
             ? `FULL NETWORK · ALL ${NODES.length} SITES`
-            : `FULL NETWORK · EXPOSED PATH ONLY (${EXPOSED_PATH.size})`}
+            : `FULL NETWORK · EXPOSED PATH ONLY (${exposedPath.size})`}
         </button>
       ) : null}
 
@@ -1324,7 +1379,7 @@ export function WorldMap({
         ? (() => {
             const [hx, hy] = project(hover.lng, hover.lat);
             const flip = hx > w - 180;
-            const affected = AFFECTED[SITE_ALIAS[hover.id] ?? hover.id];
+            const affectedCount = affected[SITE_ALIAS[hover.id] ?? hover.id];
             return (
               <div
                 className="pointer-events-none absolute z-10 border border-rule-strong bg-elevated px-2 py-1"
@@ -1340,16 +1395,16 @@ export function WorldMap({
                   {SITE_BY_ID.get(SITE_ALIAS[hover.id] ?? hover.id)?.function ??
                     `${hover.kind} · RING ${hover.ring}`}
                 </div>
-                {typeof affected === "number" ? (
+                {typeof affectedCount === "number" ? (
                   <div className="mt-1 flex items-center justify-between gap-3">
                     <span className="label">PARTS AFFECTED</span>
                     <span
                       className="text-value tabular-nums"
                       style={{
-                        color: affected > 0 ? "var(--critical)" : "var(--text-secondary)",
+                        color: affectedCount > 0 ? "var(--critical)" : "var(--text-secondary)",
                       }}
                     >
-                      {affected}
+                      {affectedCount}
                     </span>
                   </div>
                 ) : null}
