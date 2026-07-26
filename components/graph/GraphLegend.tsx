@@ -23,7 +23,13 @@ function Row({ term, children }: { term: string; children: ReactNode }) {
 export function GraphLegend() {
   const fullNetworkNodeCount = GRAPH.nodes.length;
   return (
-    <div className="pointer-events-none absolute bottom-2 left-2 z-10 max-w-[520px] select-none border border-rule bg-[color-mix(in_srgb,var(--bg-base)_85%,transparent)] px-2 py-1 text-[9px] leading-[1.5] tracking-[0.02em]">
+    <div
+      className="pointer-events-none absolute left-2 z-10 max-w-[520px] select-none border border-rule bg-[color-mix(in_srgb,var(--bg-base)_85%,transparent)] px-2 py-1 text-[9px] leading-[1.5] tracking-[0.02em]"
+      // bottom takes the 24px safe inset: with the ticker band gone this
+      // panel's bottom edge is the viewport's, and bottom-2 put the legend's
+      // last line 8px off the glass.
+      style={{ bottom: "var(--safe-inset)" }}
+    >
       <div className="flex flex-col gap-0.5">
         <Row term="COLUMNS">
           site → suppliers → BOM lines · tick + number = hops via a zone site
@@ -33,6 +39,15 @@ export function GraphLegend() {
         </Row>
         <Row term="FULL NETWORK">
           off by default, shows all {fullNetworkNodeCount} nodes as faint context when on
+        </Row>
+        {/* The distinction the product actually turns on, and the only one the
+            legend used to leave unstated: whether a link is something we saw or
+            something we inferred. Named in the colours themselves rather than
+            with swatches, which keeps it to the one row it is worth. */}
+        <Row term="COLOUR">
+          <span style={{ color: "var(--critical)" }}>red</span> = observed exposure ·{" "}
+          <span style={{ color: "var(--modeled)" }}>violet</span> = modeled from industry
+          structure
         </Row>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { FEED_EVENTS } from "@/lib/data/event";
 import { CUSTOMER } from "@/lib/data/customer";
 import { useDemoClock, formatClock } from "@/lib/hooks/useDemoClock";
 import { EventFeed, type FeedRow } from "@/components/radar/EventFeed";
-import { WorldMap, type MapFocusRequest } from "@/components/radar/WorldMap";
+import { WorldMap, MAP_WINDOW, type MapFocusRequest } from "@/components/radar/WorldMap";
 import { ImpactSummary } from "@/components/radar/ImpactSummary";
 import { Panel } from "@/components/ui/Panel";
 
@@ -83,7 +83,10 @@ export default function RadarPage() {
 
       <Panel
         label="Global Shipping · Live"
-        corner="CYL · 102W–136E"
+        // Derived from the projection, not typed here: the crop widens whenever
+        // the network gains a node outside it, and a hardcoded corner label
+        // would go on claiming the old window.
+        corner={MAP_WINDOW.label}
         className="h-full"
         noPad
         bodyClassName="overflow-hidden"

@@ -19,7 +19,6 @@ export interface DemoClockState {
   elapsedMs: number; // real ms since mount (for scripted arrivals)
   observed: number; // +1 every 20s
   modeled: number; // constant during the demo
-  tickerTick: number; // floor(elapsed / 4s), drives seeded ticker walk
   leadTick: number; // floor(elapsed / 12s), drives lead-time bumps
 }
 
@@ -28,7 +27,6 @@ const INITIAL: DemoClockState = {
   elapsedMs: 0,
   observed: COUNTERS.observed,
   modeled: COUNTERS.modeled,
-  tickerTick: 0,
   leadTick: 0,
 };
 
@@ -53,14 +51,12 @@ export function useDemoClockProvider(): DemoClockState {
           elapsedMs: elapsed,
           observed: COUNTERS.observed + Math.floor(sec / 20),
           modeled: COUNTERS.modeled,
-          tickerTick: Math.floor(sec / 4),
           leadTick: Math.floor(sec / 12),
         };
         // Avoid re-render churn when nothing meaningful changed.
         if (
           next.clockMs === prev.clockMs &&
           next.observed === prev.observed &&
-          next.tickerTick === prev.tickerTick &&
           next.leadTick === prev.leadTick
         ) {
           return prev;

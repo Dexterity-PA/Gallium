@@ -9,14 +9,13 @@ import {
 import { useDemoState } from "@/lib/hooks/useDemoState";
 import { StatusBar } from "@/components/chrome/StatusBar";
 import { NavRail } from "@/components/chrome/NavRail";
-import { Ticker } from "@/components/chrome/Ticker";
 import { CommandPalette } from "@/components/chrome/CommandPalette";
 
-// The fixed instrument panel (DESIGN.md §4). 100vh, no page scroll; the three
+// The fixed instrument panel (DESIGN.md §4). 100vh, no page scroll; the two
 // chrome bands never scroll away. 1px hairlines separate every region.
 //
 // Chrome gating: the entry/resolution flow lives at "/" and must render with
-// NO dashboard chrome at all: no LIVE badge, no ticker, no OBSERVED/MODELED
+// NO dashboard chrome at all: no LIVE badge, no OBSERVED/MODELED
 // counters (see AGENTS brief). Every other route keeps the exact chrome below,
 // unchanged, but only once a BOM is "loaded" (sample or uploaded). A direct
 // or stale visit to a dashboard route before that bounces back to "/"
@@ -71,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div
         className="grid h-full w-full overflow-hidden bg-base"
         style={{
-          gridTemplateRows: "var(--h-statusbar) 1fr var(--h-ticker)",
+          gridTemplateRows: "var(--h-statusbar) 1fr",
         }}
       >
         <StatusBar onOpenPalette={togglePalette} />
@@ -85,8 +84,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </div>
-
-        <Ticker />
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

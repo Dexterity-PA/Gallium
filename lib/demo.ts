@@ -18,7 +18,6 @@ export const PRIMARY_ARRIVAL_MS = 8000;
 // Tick engine intervals (BRIEF "Tick engine").
 export const TICK = {
   clockMs: 1000,
-  tickerMs: 4000,
   leadTimeMs: 12000,
   observedMs: 20000,
 } as const;

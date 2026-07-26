@@ -756,12 +756,13 @@ export function SupplyGraph({
         onClose={clearSelection}
       />
 
-      {/* right offset is the shared 24px safe margin, not right-2: this panel
-          is full bleed, so the canvas right edge is the window's and these
-          two controls were the right-most glyphs on the screen at 8px out. */}
+      {/* both offsets are the shared 24px safe margin, not *-2: this panel
+          is full bleed, so the canvas right AND bottom edges are the
+          window's (the bottom since the ticker band was removed), and these
+          two controls were the outermost glyphs on the screen at 8px out. */}
       <div
-        className="absolute bottom-2 z-10 flex flex-col items-end gap-1"
-        style={{ right: "var(--safe-inset)" }}
+        className="absolute z-10 flex flex-col items-end gap-1"
+        style={{ right: "var(--safe-inset)", bottom: "var(--safe-inset)" }}
       >
         <button
           type="button"

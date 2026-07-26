@@ -1,6 +1,12 @@
 import type { GraphData, GraphNode, GraphEdge, Status } from "@/lib/types";
+import { geoContains } from "d3-geo";
+import { feature } from "topojson-client";
 import { BOM } from "@/lib/data/bom";
+import { SITES } from "@/lib/data/sites";
 import { mulberry32 } from "@/lib/rng";
+// The same landmass geometry the map draws. Bundled at build time; used here
+// so the placement pass can refuse to put a node in the sea (see deconflict).
+import worldTopo from "../../public/geo/world-110m.json";
 import { DEMO_SEED } from "@/lib/demo";
 import {
   snapConfidence,
@@ -82,41 +88,66 @@ export const PROPAGATION_ORIGIN_ID = "NODE-KHH-ASE";
 export const CUSTOMER_NODE_ID = "MERIDIAN";
 
 // ---- ring 2: suppliers (28) --------------------------------------
+//
+// Every supplier carries a coordinate so RADAR can plot the whole network
+// rather than the exposed sliver. The point chosen is the supplier's principal
+// PRODUCTION site for the parts Meridian buys, not a registered-office address:
+// a map of a supply chain should show where things are made. Where a company's
+// obvious campus would land on top of a ring-3 site that already exists (ASE on
+// the Kaohsiung backend, Yageo on Taipei distribution), the second-source plant
+// is used instead, so two distinct nodes never collapse into one dot at z=1.
+//
+// The geography is synthetic but not arbitrary: fabs and wafer sites sit in
+// real fab country, backend and test in Kaohsiung / Penang / Bangkok / Manila,
+// substrate and packaging in Guangdong / Kyushu / Suzhou, distribution in
+// Singapore / Rotterdam / Chicago.
 interface SupplierDef {
   id: string;
   label: string;
   modeled?: boolean;
+  lat: number;
+  lng: number;
 }
 const SUPPLIERS: SupplierDef[] = [
-  { id: "S-TI", label: "TI · BACKEND: KAOHSIUNG" },
-  { id: "S-ROHM", label: "ROHM" },
-  { id: "S-TOSH", label: "Toshiba" },
-  { id: "S-TDK", label: "TDK EPCOS" },
-  { id: "S-PANA", label: "Panasonic" },
-  { id: "S-PULSE", label: "Pulse Electronics" },
-  { id: "S-BOURNS", label: "Bourns" },
-  { id: "S-VISHAY", label: "Vishay" },
-  { id: "S-WURTH", label: "Würth Elektronik" },
-  { id: "S-SANYO", label: "Sanyo Denki" },
-  { id: "S-ALLEGRO", label: "Allegro" },
-  { id: "S-MURATA", label: "Murata" },
-  { id: "S-YAGEO", label: "Yageo" },
-  { id: "S-PHOENIX", label: "Phoenix Contact" },
-  { id: "S-MOLEX", label: "Molex" },
-  { id: "S-DIODES", label: "Diodes Inc" },
-  { id: "S-LFUSE", label: "Littelfuse" },
-  { id: "S-LITEON", label: "Lite-On" },
-  { id: "S-DOM", label: "Domestic fab / metal" },
-  { id: "S-ASE", label: "ASE Technology Holding" },
-  { id: "S-DIST-A", label: "Authorized distributor: Arrow" },
-  { id: "S-DIST-B", label: "Authorized distributor: Avnet" },
-  { id: "S-DIST-C", label: "Regional distributor" },
-  { id: "S-SUBS", label: "Substrate consortium", modeled: true },
-  { id: "S-LEADFR", label: "Leadframe supplier", modeled: true },
-  { id: "S-ASSY", label: "Assembly materials", modeled: true },
-  { id: "S-PASSIVE", label: "Passive sub-tier" },
-  { id: "S-MAG", label: "Magnetics sub-tier" },
+  { id: "S-TI", label: "TI · BACKEND: KAOHSIUNG", lat: 32.9, lng: -96.75 }, // Dallas
+  { id: "S-ROHM", label: "ROHM", lat: 34.99, lng: 135.75 }, // Kyoto
+  { id: "S-TOSH", label: "Toshiba", lat: 35.53, lng: 139.7 }, // Kawasaki
+  // Nikaho sits ON the Akita coastline, which the 110m land polygon cuts
+  // inland of; the authored point is held a few km east so the node renders on
+  // the landmass it belongs to rather than in the Sea of Japan.
+  { id: "S-TDK", label: "TDK EPCOS", lat: 39.25, lng: 140.05 }, // Nikaho, Akita
+  { id: "S-PANA", label: "Panasonic", lat: 34.74, lng: 135.57 }, // Kadoma, Osaka
+  { id: "S-PULSE", label: "Pulse Electronics", lat: 32.75, lng: -117.1 }, // San Diego
+  { id: "S-BOURNS", label: "Bourns", lat: 33.98, lng: -117.37 }, // Riverside
+  { id: "S-VISHAY", label: "Vishay", lat: 40.04, lng: -75.51 }, // Malvern PA
+  { id: "S-WURTH", label: "Würth Elektronik", lat: 49.28, lng: 9.69 }, // Künzelsau
+  { id: "S-SANYO", label: "Sanyo Denki", lat: 36.4, lng: 138.25 }, // Ueda, Nagano
+  { id: "S-ALLEGRO", label: "Allegro", lat: 42.99, lng: -71.46 }, // Manchester NH
+  { id: "S-MURATA", label: "Murata", lat: 35.37, lng: 132.75 }, // Izumo
+  { id: "S-YAGEO", label: "Yageo", lat: 23.02, lng: 113.75 }, // Dongguan, Guangdong
+  { id: "S-PHOENIX", label: "Phoenix Contact", lat: 51.95, lng: 9.09 }, // Blomberg
+  { id: "S-MOLEX", label: "Molex", lat: 41.8, lng: -88.07 }, // Lisle IL
+  { id: "S-DIODES", label: "Diodes Inc", lat: 31.02, lng: 121.8 }, // Shanghai assembly
+  { id: "S-LFUSE", label: "Littelfuse", lat: 28.7, lng: -100.52 }, // Piedras Negras
+  { id: "S-LITEON", label: "Lite-On", lat: 23.13, lng: 113.26 }, // Guangzhou
+  { id: "S-DOM", label: "Domestic fab / metal", lat: 41.5, lng: -81.69 }, // Cleveland
+  { id: "S-ASE", label: "ASE Technology Holding", lat: 22.68, lng: 120.36 }, // Kaohsiung
+  { id: "S-DIST-A", label: "Authorized distributor: Arrow", lat: 39.58, lng: -104.87 },
+  { id: "S-DIST-B", label: "Authorized distributor: Avnet", lat: 33.45, lng: -112.07 },
+  { id: "S-DIST-C", label: "Regional distributor", lat: 22.54, lng: 114.06 }, // Shenzhen
+  { id: "S-SUBS", label: "Substrate consortium", modeled: true, lat: 31.32, lng: 120.58 }, // Suzhou
+  { id: "S-LEADFR", label: "Leadframe supplier", modeled: true, lat: 4.6, lng: 101.09 }, // Ipoh
+  { id: "S-ASSY", label: "Assembly materials", modeled: true, lat: 35.18, lng: 136.91 }, // Nagoya
+  // The 110m polygon loses the Pearl River delta's shoreline detail, so the
+  // Zhuhai point is held inland toward Zhongshan to stay on drawn land.
+  { id: "S-PASSIVE", label: "Passive sub-tier", lat: 22.4, lng: 113.4 }, // Zhuhai / Zhongshan
+  { id: "S-MAG", label: "Magnetics sub-tier", lat: 21.03, lng: 105.85 }, // Hanoi
 ];
+
+// Meridian's own plant. Same coordinate as NODE-ROC in lib/data/sites.ts: one
+// physical place, so the two datasets must not disagree about where it is.
+const MERIDIAN_LAT = 42.27;
+const MERIDIAN_LNG = -89.09;
 
 // BOM manufacturer string → supplier id.
 const MFR_TO_SUPPLIER: Record<string, string> = {
@@ -155,16 +186,26 @@ interface SiteDef {
   label: string;
   kind: "FAB" | "BACKEND" | "LOGISTICS";
   exposed?: boolean;
-  lat?: number;
-  lng?: number;
+  lat: number;
+  lng: number;
 }
+// Two provisos on the Taiwan coordinates. (1) The 110m land polygon cuts the
+// island's west coast inland of the real shoreline, so Kaohsiung and Hsinchu
+// (true positions ~120.30E / 120.97E) are held a few hundredths east: a node
+// authored at the real coordinate renders in the drawn strait, which reads as
+// an error the projection did not make. Plant and port move by the SAME
+// vector, so their true 0.08 degree separation survives. (2) The substrate
+// cluster sits in Taoyuan, which is where Taiwan's IC substrate capacity
+// actually is; the old point (24.2, 120.6) shared its longitude with the
+// Suzhou consortium to the hundredth and drew a dead-vertical lane up the
+// China coast.
 const GRAPH_SITES: SiteDef[] = [
-  { id: "NODE-KHH-ASE", label: "Kaohsiung backend A&T", kind: "BACKEND", exposed: true, lat: 22.63, lng: 120.3 },
-  { id: "NODE-HSC", label: "Hsinchu fab cluster", kind: "FAB", exposed: true, lat: 24.81, lng: 120.97 },
+  { id: "NODE-KHH-ASE", label: "Kaohsiung backend A&T", kind: "BACKEND", exposed: true, lat: 22.63, lng: 120.42 },
+  { id: "NODE-HSC", label: "Hsinchu fab cluster", kind: "FAB", exposed: true, lat: 24.81, lng: 121.02 },
   { id: "NODE-TPE", label: "Taipei distribution", kind: "LOGISTICS", exposed: true, lat: 25.03, lng: 121.57 },
-  { id: "NODE-PORT-KHH", label: "Kaohsiung port", kind: "LOGISTICS", exposed: true, lat: 22.55, lng: 120.28 },
+  { id: "NODE-PORT-KHH", label: "Kaohsiung port", kind: "LOGISTICS", exposed: true, lat: 22.55, lng: 120.4 },
   { id: "NODE-ZONE-MDL", label: "Backend cluster (modeled)", kind: "BACKEND", exposed: true, lat: 23.0, lng: 120.2 },
-  { id: "NODE-SUBS", label: "Substrate cluster (modeled)", kind: "FAB", exposed: true, lat: 24.2, lng: 120.6 },
+  { id: "NODE-SUBS", label: "Substrate cluster (modeled)", kind: "FAB", exposed: true, lat: 24.97, lng: 121.22 },
   { id: "NODE-LF", label: "Leadframe cluster (modeled)", kind: "FAB", exposed: true, lat: 23.6, lng: 120.5 },
   { id: "NODE-DAL", label: "Dallas wafer fab", kind: "FAB", lat: 32.78, lng: -96.8 },
   { id: "NODE-PEN", label: "Penang backend A&T", kind: "BACKEND", lat: 5.41, lng: 100.33 },
@@ -227,6 +268,120 @@ const SUPPLIER_SITE: Record<string, { primary: string; zone?: string; secondary?
   "S-MAG": { primary: "NODE-KUM" },
 };
 
+// A BOM line is a part, not a place, so it has no coordinate of its own. On the
+// map it is drawn where it is MADE: at its manufacturer's production site. Two
+// parts from the same manufacturer would then stack exactly, so each is pushed
+// onto a small golden-angle ring around that site. The result is a legible
+// constellation whose size is the honest signal: a supplier feeding six of
+// Meridian's lines draws a visibly bigger cluster than one feeding a single
+// line. Degrees, not pixels: under the equirectangular fit a circle in degrees
+// is still a circle on screen, so no cos(lat) correction is needed.
+//
+// Deterministic by construction (index, not RNG). It must NOT draw from the
+// seeded `rand` in buildGraph: that stream is consumed in a fixed order by the
+// density padding below, and taking from it here would reshuffle every padded
+// edge in the graph.
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+function bomOffset(k: number): [number, number] {
+  const r = 1.7 + 0.55 * k;
+  const a = k * GOLDEN_ANGLE;
+  return [r * Math.cos(a), r * Math.sin(a)];
+}
+
+// Real industrial geography is clustered, and the map should say so: seven of
+// the exposed nodes sit inside 2.5° of Taiwan on purpose. But clustered is not
+// the same as coincident. A supplier that operates a site it is linked to (TI
+// at Dallas, Bourns at Riverside) would otherwise land within a few hundredths
+// of a degree of it and stay one indivisible dot at every zoom level, so one of
+// the two could never be hovered or selected.
+//
+// This pass enforces a floor of SEPARATION_DEG between plotted points, and it
+// applies only to the SYNTHETIC points: suppliers (whose exact campus is a
+// judgment call anyway) and BOM part markers (which have no coordinate of
+// their own at all). Ring 3 sites are authored at real places and never move;
+// pushing a port off its harbour to win a hover target is the wrong trade.
+const SEPARATION_DEG = 0.55;
+type Point = { lat: number; lng: number };
+
+// Point-in-polygon against the same topology the map renders. What matters is
+// not where the coordinate truly is but where it will be SEEN: a marker that
+// the 110m coastline puts in open water reads as a placement bug regardless of
+// what the atlas says.
+const LAND = feature(
+  worldTopo as never,
+  (worldTopo as never as { objects: { countries: never } }).objects.countries
+) as unknown as GeoJSON.FeatureCollection;
+const onLand = (lng: number, lat: number): boolean =>
+  LAND.features.some((f) => geoContains(f as never, [lng, lat]));
+
+// Golden-angle spiral out from the AUTHORED point (never from the previous
+// attempt) so a node ends up as near its true location as the floor allows,
+// and the result depends only on placement order; no RNG, no drift. A
+// candidate is accepted only when it is BOTH clear of the floor and on drawn
+// land; the previous version checked only the floor, and its main effect was
+// to sweep coastal clusters (San Diego, Kaohsiung, Kyushu) out to sea. If the
+// spiral finds no on-land opening within 60 steps it falls back to the first
+// clear point, sea or not, rather than refusing to place the node.
+function deconflict(placed: Point[], lat: number, lng: number): Point {
+  const clear = (p: Point) =>
+    !placed.some((q) => Math.hypot(q.lat - p.lat, q.lng - p.lng) < SEPARATION_DEG);
+  let firstClear: Point | null = null;
+  for (let step = 0; step <= 60; step++) {
+    const a = step * GOLDEN_ANGLE;
+    const r = step === 0 ? 0 : SEPARATION_DEG * (0.75 + 0.16 * step);
+    const candidate = { lat: lat + r * Math.sin(a), lng: lng + r * Math.cos(a) };
+    if (!clear(candidate)) continue;
+    if (onLand(candidate.lng, candidate.lat)) {
+      placed.push(candidate);
+      return candidate;
+    }
+    firstClear ??= candidate;
+  }
+  const fallback = firstClear ?? { lat, lng };
+  placed.push(fallback);
+  return fallback;
+}
+
+// ---- placement pass -----------------------------------------------------
+//
+// Resolved up front, in a fixed order, so that node PUSH order inside
+// buildGraph (customer → BOM → suppliers → sites, which the layout and the
+// contamination sequence both depend on) stays exactly as it was. Placement
+// order and push order are different concerns and are kept apart.
+//
+// EVERY ring 3 site is pinned at its authored coordinate, exempt from the
+// separation floor. An earlier version pinned only the sites lib/data/sites.ts
+// also publishes, which quietly deconflicted the rest: the Kaohsiung PORT (not
+// in sites.ts) was spiralled 0.6° into the strait, breaking the one distance
+// this file promises to keep: plant to port, 0.08°. That is the real distance
+// between them and keeping it is the right call: those two nodes being one
+// mark at the home fit is a truthful picture of a plant and the port it ships
+// from. Same story for Los Angeles and Long Beach.
+const NODE_XY: Record<string, Point> = (() => {
+  const placed: Point[] = [];
+  const xy: Record<string, Point> = {};
+
+  const pin = (id: string, lat: number, lng: number) => {
+    const p = { lat, lng };
+    placed.push(p);
+    xy[id] = p;
+  };
+  for (const s of GRAPH_SITES) pin(s.id, s.lat, s.lng);
+  pin(CUSTOMER_NODE_ID, MERIDIAN_LAT, MERIDIAN_LNG);
+
+  for (const s of SUPPLIERS) xy[s.id] = deconflict(placed, s.lat, s.lng);
+
+  const perSupplier: Record<string, number> = {};
+  for (const b of BOM) {
+    const sup = MFR_TO_SUPPLIER[b.manufacturer] ?? "S-DOM";
+    const anchor = xy[sup];
+    const k = (perSupplier[sup] = (perSupplier[sup] ?? -1) + 1);
+    const [dLng, dLat] = bomOffset(k);
+    xy[`G-${b.id}`] = deconflict(placed, anchor.lat + dLat, anchor.lng + dLng);
+  }
+  return xy;
+})();
+
 function worst(a: Status, b: Status): Status {
   const rank: Record<Status, number> = { CLEAR: 0, AT_RISK: 1, EXPOSED: 2 };
   return rank[a] >= rank[b] ? a : b;
@@ -251,6 +406,7 @@ function buildGraph(): GraphData & {
     status: "AT_RISK", // center ring turns amber during the sequence
     provenance: "OBSERVED",
     exposureValue: 40,
+    ...NODE_XY[CUSTOMER_NODE_ID],
   });
 
   // ring 1: BOM
@@ -269,6 +425,7 @@ function buildGraph(): GraphData & {
         6 +
         (b.status === "EXPOSED" ? 5 : b.status === "AT_RISK" ? 2 : 0) +
         Math.min(6, b.qtyPerUnit * b.unitCost * 0.15),
+      ...NODE_XY[nid],
     });
     // Meridian → BOM (always observed: we observe our own BOM)
     edges.push({
@@ -299,6 +456,7 @@ function buildGraph(): GraphData & {
       status: st,
       provenance: s.modeled ? "MODELED" : "OBSERVED",
       exposureValue: 5 + (st === "EXPOSED" ? 4 : st === "AT_RISK" ? 2 : 0),
+      ...NODE_XY[s.id],
     });
     // supplier → site(s)
     const link = SUPPLIER_SITE[s.id];
@@ -345,8 +503,7 @@ function buildGraph(): GraphData & {
       status: st,
       provenance: modeled ? "MODELED" : "OBSERVED",
       exposureValue: 4 + (st === "EXPOSED" ? 4 : 0),
-      lat: s.lat,
-      lng: s.lng,
+      ...NODE_XY[s.id],
     });
   }
 
@@ -473,6 +630,73 @@ export const GRAPH_STATS = {
   modeledEdges: GRAPH.edges.filter((e) => e.provenance === "MODELED").length,
   exposedBom: EXPOSED_BOM_NODE_IDS.length,
 };
+
+// ---- geography (RADAR) --------------------------------------------------
+//
+// RADAR plots this graph, so every node has to be placeable. Ring 3 sites and
+// ring 2 suppliers carry authored coordinates; ring 1 BOM lines inherit their
+// manufacturer's with a golden-angle offset; ring 0 is Meridian's own plant.
+// The guard below is what keeps that true: add a node without a coordinate and
+// the build fails here rather than dropping it silently off the map.
+export const GRAPH_GEO_OK = (() => {
+  const missing = GRAPH.nodes.filter(
+    (n) => !Number.isFinite(n.lat) || !Number.isFinite(n.lng)
+  );
+  if (missing.length) {
+    throw new Error(
+      `${missing.length} graph node(s) have no coordinate and cannot be mapped: ` +
+        missing
+          .slice(0, 5)
+          .map((n) => n.id)
+          .join(", ")
+    );
+  }
+  const drawable = GRAPH.edges.filter((e) => e.source !== e.target).length;
+  return { placed: GRAPH.nodes.length, drawableEdges: drawable };
+})();
+
+// lib/data/sites.ts publishes its own copy of ten of these coordinates (the
+// map detail panel and the quarantine zone draw against them). Pinning used to
+// be what kept the two files aligned; now that pinning covers every ring 3
+// site, this guard is what makes a one-sided coordinate edit fail the build
+// instead of splitting one physical place into two map positions.
+export const SITES_AGREE_OK = (() => {
+  for (const s of SITES) {
+    const p = s.isCustomer ? NODE_XY[CUSTOMER_NODE_ID] : NODE_XY[s.id];
+    if (!p) throw new Error(`sites.ts entry ${s.id} has no graph placement`);
+    if (Math.abs(p.lat - s.lat) > 1e-9 || Math.abs(p.lng - s.lng) > 1e-9) {
+      throw new Error(
+        `sites.ts and graph.ts disagree about ${s.id}: ` +
+          `${s.lat},${s.lng} vs ${p.lat},${p.lng}`
+      );
+    }
+  }
+  return SITES.length;
+})();
+
+// The one lane the scenario is about: quarantined backend → port → air reroute
+// → Chicago inbound. Its final inland leg (Chicago → Meridian) is drawn by the
+// map but is deliberately NOT an edge here: Meridian connects to BOM lines,
+// not to logistics nodes, and inventing an edge would move the 162 count that
+// GRAPH and the legend both report.
+export const FREIGHT_LANE = [
+  "NODE-KHH-ASE",
+  "NODE-PORT-KHH",
+  "NODE-ORD",
+  "NODE-CHI",
+] as const;
+
+// Nodes RADAR keeps when the FULL NETWORK toggle is off. EXPOSED only, not
+// EXPOSED plus AT_RISK, which pulls in another 15 nodes and blurs the very
+// distinction the narrowed view exists to make. Two additions: Meridian, which
+// is the destination every exposed lane is heading for, and the two CLEAR
+// logistics nodes the stuck freight routes through, without which the lane
+// stops mid-Pacific.
+export const EXPOSED_PATH_NODE_IDS: string[] = (() => {
+  const keep = new Set<string>([...FREIGHT_LANE, CUSTOMER_NODE_ID]);
+  for (const n of GRAPH.nodes) if (n.status === "EXPOSED") keep.add(n.id);
+  return GRAPH.nodes.filter((n) => keep.has(n.id)).map((n) => n.id);
+})();
 
 // ---- edge-confidence integrity (dev-time guard against silent drift) ----
 // Every edge confidence must be legal and non-forbidden, the modeled edges must

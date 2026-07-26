@@ -29,15 +29,15 @@ import { BAND_INSET } from "@/components/portfolio/layout";
    "before it happened" means, so the two states cannot disagree about
    anything except the incident.
 
-   LAYOUT / 1920x1080. AppShell leaves this route 1872x1030 (nav rail 48,
-   status bar 28, ticker 22). The panel is full bleed inside that, like
+   LAYOUT / 1920x1080. AppShell leaves this route 1872x1052 (nav rail 48,
+   status bar 28). The panel is full bleed inside that, like
    every other screen: panels here carry no border and no gutter, so an
    inset one would read as a card floating on a darker plane. The 24px
    camera-safe margin is held by CONTENT instead: every band takes pl-4
    on a left edge that already starts 48px in, and BAND_INSET on the
    right (see components/portfolio/layout.ts for why that one is a
    calc). Vertically the header sits below the 28px status bar and the
-   footer above the 22px ticker.
+   footer lands on the window's bottom edge.
 
    The table's rows are flex-1, so seven products fill the remaining
    height exactly and nothing scrolls. Padding is not uniform (RULE 8):
@@ -46,7 +46,7 @@ import { BAND_INSET } from "@/components/portfolio/layout";
    Those two steps are set by 1280x700, not by 1920x1080. Because the rows
    are flex-1, their padding is a MINIMUM height, not their height: at
    1920 every row is 113px around the same content and the step makes no
-   visible difference. At 1280x700 the seven rows share 418px, and the
+   visible difference. At 1280x700 the seven rows share 440px, and the
    larger steps made each row demand more than it was given, which a flex
    column resolves by cropping the row's content rather than scrolling.
    The band copy is kept to one line at 1280px wide for the same reason.
@@ -145,7 +145,15 @@ export default function PortfolioPage() {
             band sits directly under the blotter, and every row it wraps to is
             a row of height taken off seven flex-1 rows that are already the
             tightest thing on the screen at 700px tall. */}
-        <div className="shrink-0 border-t border-rule pl-4 py-2" style={BAND_INSET}>
+        <div
+          className="shrink-0 border-t border-rule pl-4 pt-2"
+          // pb is the 24px safe inset, not py-2's 6px: this band's bottom
+          // edge is the window's now that the ticker band is gone, and the
+          // legend line was the lowest glyph on the screen at 11px off the
+          // glass. Asymmetric on purpose (RULE 8): the top edge is an
+          // internal rule, the bottom edge is a viewport edge.
+          style={{ ...BAND_INSET, paddingBottom: "var(--safe-inset)" }}
+        >
           <span className="label">
             Ranked by value at risk. Every row opens its bill of materials. Days
             to halt is the runway left against Meridian&rsquo;s 10-week buffer.

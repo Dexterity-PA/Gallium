@@ -17,16 +17,21 @@ const SITES_SEED: Omit<Site, "sourceIds">[] = [
     id: "NODE-KHH-ASE",
     label: "Kaohsiung backend A&T",
     function: "Backend assembly & test",
+    // Held a few hundredths east of the true position (22.63, 120.30): the
+    // 110m land polygon cuts Taiwan's west coast inland of the real shoreline,
+    // and the map must not draw this plant in the strait. graph.ts carries the
+    // same value; SITES_AGREE_OK fails the build if the two ever split.
     lat: 22.63,
-    lng: 120.3,
+    lng: 120.42,
     exposed: true,
   },
   {
     id: "NODE-HSC",
     label: "Hsinchu fab cluster",
     function: "Wafer fabrication",
+    // Same coastline nudge as Kaohsiung: true position is (24.81, 120.97).
     lat: 24.81,
-    lng: 120.97,
+    lng: 121.02,
     exposed: true,
   },
   {

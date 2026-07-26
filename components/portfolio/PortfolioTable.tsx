@@ -31,19 +31,19 @@ import { BAND_INSET } from "@/components/portfolio/layout";
    carry the ranking instead, which is what they are for.
    ============================================================ */
 
-// rank | product | lines | exposed | bar | value | days | spacer | status
+// rank | product | lines | exposed | bar | value | days | spacer | provenance
 //
-// The spacer track is real: DAYS TO HALT is right-aligned and STATUS is
-// left-aligned, so without it the two run together into "51 EXPOSED" and the
-// eye cannot tell which column it is reading. One --sp-5 track plus the gap
-// either side puts 40px between them.
+// The spacer track is real: DAYS TO HALT is right-aligned and PROVENANCE is
+// left-aligned, so without it the two run together into "51 14 OBSERVED" and
+// the eye cannot tell which column it is reading. One --sp-5 track plus the
+// gap either side puts 40px between them.
 //
 // minmax(), not fixed px, on the four wide tracks. As pure fixed widths the
 // row demanded 56+420+100+110+170+130+16+190 = 1192px of track plus 96px of
 // gap plus 44px of band inset = 1332px, against the 1232px this route gets at
 // a 1280px window. Grid does not shrink a fixed track to fit, so the overflow
-// went out the right-hand side and STATUS rendered hard against the glass at
-// 0px. Each max below is the old fixed value, so nothing moves at 1512 and
+// went out the right-hand side and the last column rendered hard against the
+// glass at 0px. Each max below is the old fixed value, so nothing moves at 1512 and
 // wider; each min is the width its longest real string needs.
 //
 // The bar column carries minmax(150px, 1fr), not minmax(0, 1fr). Grid
@@ -73,7 +73,7 @@ const COLUMNS: ColumnDef[] = [
   { label: "VALUE AT RISK", align: "right" },
   { label: "DAYS TO HALT", align: "right" },
   { label: "", align: "left" }, // spacer
-  { label: "STATUS", align: "left" },
+  { label: "PROVENANCE", align: "left" },
 ];
 
 /** A right-aligned figure over its unit label. The label never competes. */
@@ -130,6 +130,11 @@ function ExposureBar({ p, tone }: { p: PortfolioProduct; tone: string }) {
   );
 }
 
+// With all seven BOMs ingested, every row is exposed, and a column that said
+// "▲ EXPOSED" seven times carried no information, while rank, bar length and
+// value at risk already encode severity three times over. What no other
+// column says is HOW WE KNOW: how much of the exposure was seen in records
+// versus inferred from industry structure. That split is now the whole cell.
 function StatusCell({ p }: { p: PortfolioProduct }) {
   if (p.status === "EXPOSED") {
     const observed = p.exposedLines - p.modeledExposed;
@@ -137,16 +142,12 @@ function StatusCell({ p }: { p: PortfolioProduct }) {
       <div>
         <div
           className="text-value leading-tight"
-          style={{ color: "var(--critical)", fontWeight: 600 }}
+          style={{ color: "var(--text-primary)", fontWeight: 500 }}
         >
-          ▲ EXPOSED
+          {observed} observed
         </div>
-        {/* The one thing this column can say that no other column says: how
-            much of the exposure was seen rather than inferred. */}
         <div className="label">
-          {p.modeledExposed > 0
-            ? `${observed} observed · ${p.modeledExposed} modeled`
-            : `${observed} observed`}
+          {p.modeledExposed > 0 ? `${p.modeledExposed} modeled` : "none modeled"}
         </div>
       </div>
     );
@@ -157,7 +158,7 @@ function StatusCell({ p }: { p: PortfolioProduct }) {
         className="text-value leading-tight"
         style={{ color: "var(--text-primary)", fontWeight: 500 }}
       >
-        ◆ MONITORED
+        0 observed
       </div>
       <div className="label">no zone exposure</div>
     </div>
@@ -335,8 +336,8 @@ export function PortfolioTable({ rows }: { rows: PortfolioProduct[] }) {
           // py-1.5, not py-3. These rows are flex-1, so the padding does not
           // set their height when there is room; it sets their MINIMUM. At
           // 1920x1080 each row is 112px around 39px of content and the step
-          // is invisible either way. At 1280x700 the seven rows share 357px,
-          // and py-3 made each row demand 63px inside 51px, which the flex
+          // is invisible either way. At 1280x700 the seven rows share 379px,
+          // and py-3 made each row demand 63px inside 54px, which the flex
           // column satisfies by cropping the content rather than scrolling.
           // The blotter is also a dense data region, so --sp-2 is the step
           // tokens.css RULE 8 asks for here; py-3 is a framing step.

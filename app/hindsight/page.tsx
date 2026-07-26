@@ -23,7 +23,7 @@ import { HindsightTable } from "@/components/hindsight/HindsightTable";
 // HEIGHT. The panel is no longer h-full. With the strip gone there is nothing
 // below the table to anchor to the bottom of the window, so a full-height
 // panel is four rows of ledger followed by a field of empty --bg-panel
-// stretched down to the ticker. The panel now ends where the record ends, and
+// stretched down to the window edge. The panel now ends where the record ends, and
 // the page scrolls if a future event count outgrows the window.
 //
 // LAYOUT CONTRACT. Every horizontal inset on this screen is owned by the

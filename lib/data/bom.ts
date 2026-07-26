@@ -31,7 +31,7 @@ export function deriveBomSourceIds(s: Omit<BomLine, "sourceIds">): string[] {
 //
 // Lead times run odd more often than even and the deltas are not round:
 // quotes come back at 23 and 31 weeks, not 20 and 30, and they move by 7 or
-// 2.5 rather than by 5. ticker.ts now READS these lines (leadTimeRow) instead
+// 2.5 rather than by 5. Downstream surfaces READ these lines instead
 // of repeating their numbers, so the strip cannot disagree with the table.
 //
 // Confidence is authored per line, never a shared constant: see the note at the
