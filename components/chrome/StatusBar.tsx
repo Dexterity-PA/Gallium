@@ -4,6 +4,7 @@ import { useDemoClock, formatClock } from "@/lib/hooks/useDemoClock";
 import { useCountUp } from "@/lib/hooks/useCountUp";
 import { useDemoState } from "@/lib/hooks/useDemoState";
 import { CUSTOMER } from "@/lib/data/customer";
+import { FocusIndicator } from "@/components/chrome/FocusIndicator";
 
 function fmt(n: number): string {
   return n.toLocaleString("en-US");
@@ -58,6 +59,11 @@ export function StatusBar({ onOpenPalette }: { onOpenPalette: () => void }) {
         {/* --modeled is reserved for modeled/inferred data (tokens.css RULE 2) */}
         <span className="text-modeled">{fmt(modeled)}</span>
       </div>
+
+      {/* Cross-screen focused-part indicator (lib/focus). Renders null when
+          nothing is focused, so this row of the bar collapses back to the
+          bare flex-1 spacer, pixel-identical to the unfocused frame. */}
+      <FocusIndicator />
 
       <div className="flex-1" />
 

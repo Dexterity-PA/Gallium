@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { BomLine } from "@/lib/types";
 import { CENTERPIECE_ID } from "@/lib/data/bom";
 import {
@@ -76,6 +76,18 @@ export function BomTable({
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [hoverId, setHoverId] = useState<string | null>(null);
 
+  // Row elements by line id, so a part focused from elsewhere (⌘K palette,
+  // ?focus= deep link, another screen) can be scrolled into view. "nearest"
+  // makes this a no-op for a row the user just clicked; the scroll margins on
+  // each row keep the target clear of the sticky header and summary rows.
+  // Idempotent under Strict Mode's double effect run, and nothing depends on
+  // the double run: the same scroll twice lands on the same pixel.
+  const rowEls = useRef(new Map<string, HTMLTableRowElement>());
+  useEffect(() => {
+    if (!selectedId) return;
+    rowEls.current.get(selectedId)?.scrollIntoView({ block: "nearest" });
+  }, [selectedId]);
+
   const sorted = useMemo(() => {
     if (!sortKey) return rows;
     const out = [...rows];
@@ -112,6 +124,12 @@ export function BomTable({
 
   return (
     <div className="h-full overflow-auto">
+      {/* Styles for the ERP reveal on focused ERP-blind rows. Static CSS with
+          fixed timings: deterministic, replayed purely by unmount/remount of
+          the revealed cell, no rAF timeline, no effect, nothing Strict-Mode
+          sensitive. Emitting no selector the default frame uses, the tag
+          changes no pixel while nothing is focused. */}
+      <style>{ERP_REVEAL_CSS}</style>
       {/* The trailing cell of every row (header, body, summary) carries the
           24px safe margin instead of its px-2. CONF is the right-most column
           and this panel is full bleed, so those figures were landing 8px off
@@ -159,6 +177,17 @@ export function BomTable({
             const isHover = b.id === hoverId;
             const isModeled = b.provenance === "MODELED";
 
+            // The ERP reveal applies to any row whose data says the ERP's
+            // country of origin misleads (erpBlind) about a real exposure
+            // elsewhere. Derived per row, never keyed to an MPN: today that
+            // is the three tier-2 catches on MD-7200 plus whatever the other
+            // six products' derivations flag, tomorrow whatever the data says.
+            const revealed =
+              isSelected &&
+              b.erpBlind &&
+              !!b.actualExposure &&
+              b.actualExposure !== b.erpOrigin;
+
             // The left edge carries one meaning at a time. --focus marks the
             // row you are on (selected, hovered, or the pulsing centrepiece);
             // --modeled dashes mark an inferred row. Selection wins over
@@ -174,13 +203,25 @@ export function BomTable({
             const baseText = isModeled ? "var(--modeled)" : "var(--text-secondary)";
 
             return (
+              <Fragment key={b.id}>
               <tr
-                key={b.id}
+                ref={(el) => {
+                  if (el) rowEls.current.set(b.id, el);
+                  else rowEls.current.delete(b.id);
+                }}
                 onClick={() => onSelect(b)}
                 onMouseEnter={() => setHoverId(b.id)}
                 onMouseLeave={() => setHoverId((h) => (h === b.id ? null : h))}
                 className={isCenter ? "anim-focal cursor-pointer" : "cursor-pointer"}
-                style={{ background: rowBg, borderLeft, height: "var(--row-h)" }}
+                style={{
+                  background: rowBg,
+                  borderLeft,
+                  height: "var(--row-h)",
+                  // clearance for scrollIntoView: one row for the sticky
+                  // header, two and a half for the two-line sticky summary
+                  scrollMarginTop: "calc(var(--row-h) * 1.2)",
+                  scrollMarginBottom: "calc(var(--row-h) * 2.5)",
+                }}
               >
                 {/* MPN: the centrepiece separates on weight, not on a hue:
                     its left rule and focal pulse already say "look here". */}
@@ -232,36 +273,67 @@ export function BomTable({
                     </td>
                   );
                 })()}
-                {/* ERP ORIGIN */}
-                <td className="truncate px-2">
-                  <span
-                    style={{
-                      color: b.erpBlind ? "var(--text-dim)" : baseText,
-                      textDecoration: b.erpBlind ? "line-through" : "none",
-                    }}
-                  >
-                    {b.erpOrigin}
-                  </span>
-                </td>
-                {/* ACTUAL EXPOSURE */}
-                <td className="truncate px-2">
-                  {b.actualExposure ? (
-                    <span
-                      style={{
-                        color: isModeled
-                          ? "var(--modeled)"
-                          : b.status === "EXPOSED"
-                          ? "var(--critical)"
-                          : baseText,
-                        fontWeight: isCenter ? 700 : 400,
-                      }}
-                    >
-                      {b.actualExposure}
+                {revealed ? (
+                  /* ---- the ERP reveal --------------------------------------
+                     One cell spanning ERP ORIGIN + ACTUAL EXPOSURE (fixed
+                     table layout: the pair's 288px, no other column moves).
+                     The DOM is the resolved end state from its first frame:
+                     the ERP's claim struck out, then the true exposure. The
+                     mount-triggered CSS animations (see ERP_REVEAL_CSS)
+                     replay the resolution each time the part is focused,
+                     because clearing focus unmounts this branch and
+                     refocusing mounts it fresh. Under reduced motion the
+                     animations are dropped and the resolved state is
+                     immediate. */
+                  <td colSpan={2} className="truncate px-2">
+                    <span className="inline-flex items-baseline gap-2 whitespace-nowrap align-baseline">
+                      <span className="erp-reveal-claim">
+                        {b.erpOrigin}
+                        <span aria-hidden className="erp-reveal-strike" />
+                      </span>
+                      <span className="erp-reveal-arrow">→</span>
+                      <span
+                        className="erp-reveal-actual"
+                        style={{ fontWeight: isCenter ? 700 : 400 }}
+                      >
+                        {b.actualExposure}
+                      </span>
                     </span>
-                  ) : (
-                    <span className="text-dim">n/a</span>
-                  )}
-                </td>
+                  </td>
+                ) : (
+                  <>
+                    {/* ERP ORIGIN */}
+                    <td className="truncate px-2">
+                      <span
+                        style={{
+                          color: b.erpBlind ? "var(--text-dim)" : baseText,
+                          textDecoration: b.erpBlind ? "line-through" : "none",
+                        }}
+                      >
+                        {b.erpOrigin}
+                      </span>
+                    </td>
+                    {/* ACTUAL EXPOSURE */}
+                    <td className="truncate px-2">
+                      {b.actualExposure ? (
+                        <span
+                          style={{
+                            color: isModeled
+                              ? "var(--modeled)"
+                              : b.status === "EXPOSED"
+                              ? "var(--critical)"
+                              : baseText,
+                            fontWeight: isCenter ? 700 : 400,
+                          }}
+                        >
+                          {b.actualExposure}
+                        </span>
+                      ) : (
+                        <span className="text-dim">n/a</span>
+                      )}
+                    </td>
+                  </>
+                )}
                 {/* TIER */}
                 <td className="px-2 text-right tabular-nums" style={{ color: baseText }}>
                   {b.tier}
@@ -310,6 +382,63 @@ export function BomTable({
                   {b.confidence}%
                 </td>
               </tr>
+              {revealed ? (
+                /* The reason, stated where the reveal happens rather than
+                   implied by a struck cell: country of origin is the wafer
+                   fab, the exposure is the backend. Sites come from the
+                   line's own supply path. Present only while the row is
+                   focused, so the default frame is untouched. */
+                <tr
+                  className="erp-reveal-note"
+                  style={{ height: "var(--row-h)" }}
+                >
+                  <td
+                    colSpan={COLUMNS.length}
+                    className="px-2 py-1"
+                    style={{
+                      borderLeft: "2px solid var(--critical)",
+                      background: "var(--bg-elevated)",
+                      // The reveal row only renders while the part drawer
+                      // (420px overlay, right-anchored) is open, so the
+                      // sentence must stop before the drawer edge and wrap
+                      // rather than run underneath it or clip. 436 = drawer
+                      // width + the table's own right gutter.
+                      paddingRight: 436,
+                      whiteSpace: "normal",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {(() => {
+                      const fab = b.supplyPath?.find(
+                        (n) => n.stage === "WAFER FAB"
+                      );
+                      const zone = b.supplyPath?.find(
+                        (n) => n.inQuarantineZone
+                      );
+                      return (
+                        <span className="text-secondary">
+                          <span style={{ color: "var(--critical)" }}>⚠</span>{" "}
+                          Country of origin reflects wafer fabrication
+                          {fab ? (
+                            <>
+                              {": "}
+                              <span className="text-primary">{fab.site}</span>
+                            </>
+                          ) : (
+                            " only"
+                          )}
+                          {". Assembly and test: "}
+                          <span style={{ color: "var(--critical)" }}>
+                            {zone?.site ?? b.actualExposure}
+                          </span>
+                          {", inside the quarantine zone. Invisible to ERP-based risk tools."}
+                        </span>
+                      );
+                    })()}
+                  </td>
+                </tr>
+              ) : null}
+              </Fragment>
             );
           })}
         </tbody>
@@ -407,3 +536,65 @@ const FOOT_STYLE: React.CSSProperties = {
   borderTop: "1px solid var(--rule-strong)",
   verticalAlign: "bottom",
 };
+
+// ---- the ERP reveal ---------------------------------------------------------
+// Base styles ARE the resolved end state: the ERP's claim struck and dim, the
+// true exposure in --critical, the reason row visible. The keyframes only
+// replay the journey (claim taken at face value → struck out → true path
+// asserts), all inside one 0.9s timeline, so dropping them under reduced
+// motion lands on exactly the frame the animation would have settled on.
+// Timing is percentage phases of a single fixed duration: deterministic, no
+// mount-order dependence, replayed by remounting the revealed cell.
+const ERP_REVEAL_CSS = `
+.erp-reveal-claim {
+  position: relative;
+  color: var(--text-dim);
+  animation: erp-reveal-claim 0.9s ease both;
+}
+@keyframes erp-reveal-claim {
+  0%, 33% { color: var(--text-primary); }
+  61%, 100% { color: var(--text-dim); }
+}
+.erp-reveal-strike {
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: 50%;
+  height: 1px;
+  background: var(--critical);
+  transform-origin: left center;
+  animation: erp-reveal-strike 0.9s ease both;
+}
+@keyframes erp-reveal-strike {
+  0%, 30% { transform: scaleX(0); }
+  58%, 100% { transform: scaleX(1); }
+}
+.erp-reveal-arrow {
+  color: var(--text-secondary);
+  animation: erp-reveal-late 0.9s ease both;
+}
+.erp-reveal-actual {
+  color: var(--critical);
+  animation: erp-reveal-actual 0.9s ease both;
+}
+@keyframes erp-reveal-actual {
+  0%, 58% { opacity: 0; transform: translateX(-4px); }
+  84%, 100% { opacity: 1; transform: translateX(0); }
+}
+.erp-reveal-note {
+  animation: erp-reveal-late 0.9s ease both;
+}
+@keyframes erp-reveal-late {
+  0%, 55% { opacity: 0; }
+  78%, 100% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .erp-reveal-claim,
+  .erp-reveal-strike,
+  .erp-reveal-arrow,
+  .erp-reveal-actual,
+  .erp-reveal-note {
+    animation: none;
+  }
+}
+`;

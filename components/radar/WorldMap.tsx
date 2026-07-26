@@ -27,6 +27,7 @@ import {
   PROPAGATION_ORIGIN_ID,
 } from "@/lib/data/graph";
 import type { GraphNode } from "@/lib/types";
+import { useFocusedPart } from "@/lib/focus";
 import { useScenario } from "@/lib/hooks/useScenario";
 import { scenarioGraphView, affectedRadius, scenarioStatus } from "@/lib/derive/scenario";
 import {
@@ -419,6 +420,13 @@ export function WorldMap({
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [hover, setHover] = useState<PlacedNode | null>(null);
   const [selected, setSelected] = useState<PlacedNode | null>(null);
+
+  // App-level focused part (lib/focus). The `isolate` prop stays the driver
+  // of WHAT is isolated (the page passes focusedPart?.id, one source of
+  // truth); the hook is read here only for what the prop cannot carry: the
+  // part's MPN for the scope control's label, and clearFocus so the control
+  // can exit part scope itself.
+  const { focusedPart, clearFocus } = useFocusedPart();
 
   // ---- the scenario's view of the network ---------------------------------
   // At the default control everything below is the exact module constant
@@ -867,6 +875,33 @@ export function WorldMap({
     });
   }, [exposedPath]);
 
+  // Leaving part scope through a base-scope row: pick the base scope AND
+  // clear the focus, in that order, so the map lands exactly where the row
+  // said it would.
+  const exitToScope = useCallback(
+    (full: boolean) => {
+      setFullNetwork(full);
+      clearFocus();
+    },
+    [clearFocus]
+  );
+
+  // However focus clears (the scope rows here, the Impact panel's ISOLATED
+  // line, the command palette, a deep-link edit), a narrowed map must not
+  // keep a detail panel or tooltip open on an isolate-only node that just
+  // left the map. Derived at render, not pruned in an effect
+  // (react-hooks/set-state-in-effect): a node the current scope does not
+  // draw is simply not selected or hovered as far as this frame is
+  // concerned. On the default frame every node is visible, so these are the
+  // raw states and nothing moves.
+  const isNodeShown = useCallback(
+    (n: PlacedNode) =>
+      fullNetwork || exposedPath.has(n.id) || !!isolateData?.nodeIds.has(n.id),
+    [fullNetwork, exposedPath, isolateData]
+  );
+  const shownSelected = selected && isNodeShown(selected) ? selected : null;
+  const shownHover = hover && isNodeShown(hover) ? hover : null;
+
   // Meridian's plant and the nine mapped sites carry a richer record than the
   // graph node does (function text, their own provenance documents), so the map
   // prefers it and falls back to the graph node for the other eighty.
@@ -1007,7 +1042,7 @@ export function WorldMap({
                 />
               );
             }
-            const on = selected?.id === l.a.id || selected?.id === l.b.id;
+            const on = shownSelected?.id === l.a.id || shownSelected?.id === l.b.id;
             const s = STROKE[l.tier as Exclude<Tier, "context">];
             return (
               <g key={l.key}>
@@ -1153,7 +1188,7 @@ export function WorldMap({
             const lit = isolateData ? isolateData.nodeIds.has(n.id) : exposedPath.has(n.id);
             const isCustomer = n.id === CUSTOMER_NODE_ID;
             const isOrigin = n.id === originId;
-            const isSel = selected?.id === n.id;
+            const isSel = shownSelected?.id === n.id;
 
             if (!lit) {
               // Context node: a dot, not a square. Squares are the vocabulary
@@ -1353,30 +1388,76 @@ export function WorldMap({
         </div>
       ) : null}
 
-      {/* Scope toggle. Same glyph, weight and corner as the one on GRAPH so the
-          two screens read as one product; the label states the current scope in
-          full, which is why this panel needs no legend. */}
+      {/* Scope control. With nothing focused this is the same two-state
+          toggle as always (markup unchanged, so the default frame does not
+          move). Focusing a part expands the corner into the full scope
+          ladder: FULL NETWORK, EXPOSED PATH ONLY, and the part itself, each
+          a labelled row with a hover cue, so the third scope is a visible
+          control rather than a hidden click target. ▣ marks the scope the
+          map is drawing right now. Clicking the part row clears focus and
+          returns to whichever base scope was active before; clicking a base
+          row clears focus AND selects that base scope. A focused part whose
+          path the graph cannot draw (isolateData null) keeps the map in its
+          base scope and says so on the part row instead of drawing a wrong
+          path. */}
       {ready ? (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleFullNetwork();
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-          className="label absolute right-2 z-10 flex items-center gap-1 text-dim transition-colors hover:text-interactive"
-          style={{ bottom: "var(--safe-inset)" }}
-        >
-          <span aria-hidden>{fullNetwork ? "▣" : "▢"}</span>{" "}
-          {fullNetwork
-            ? `FULL NETWORK · ALL ${NODES.length} SITES`
-            : `FULL NETWORK · EXPOSED PATH ONLY (${exposedPath.size})`}
-        </button>
+        isolate && focusedPart ? (
+          <div
+            className="absolute right-2 z-10 flex flex-col items-end gap-1"
+            style={{ bottom: "var(--safe-inset)" }}
+          >
+            <ScopeRow
+              active={!isolateData && fullNetwork}
+              label={`FULL NETWORK · ALL ${NODES.length} SITES`}
+              title="CLEAR PART FOCUS · SHOW ALL SITES"
+              onClick={() => exitToScope(true)}
+            />
+            <ScopeRow
+              active={!isolateData && !fullNetwork}
+              label={`EXPOSED PATH ONLY (${exposedPath.size})`}
+              title="CLEAR PART FOCUS · SHOW EXPOSED PATH ONLY"
+              onClick={() => exitToScope(false)}
+            />
+            <ScopeRow
+              active={!!isolateData}
+              label={
+                isolateData
+                  ? `PART · ${focusedPart.mpn} · ${isolateData.nodeIds.size} NODES`
+                  : `PART · ${focusedPart.mpn} · NO MAPPED PATH`
+              }
+              title={
+                isolateData
+                  ? `CLEAR PART FOCUS · RETURN TO ${
+                      fullNetwork ? "FULL NETWORK" : "EXPOSED PATH ONLY"
+                    }`
+                  : "NO MAPPED PATH FOR THIS PART · CLICK TO CLEAR"
+              }
+              onClick={clearFocus}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFullNetwork();
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="label absolute right-2 z-10 flex items-center gap-1 text-dim transition-colors hover:text-interactive"
+            style={{ bottom: "var(--safe-inset)" }}
+          >
+            <span aria-hidden>{fullNetwork ? "▣" : "▢"}</span>{" "}
+            {fullNetwork
+              ? `FULL NETWORK · ALL ${NODES.length} SITES`
+              : `FULL NETWORK · EXPOSED PATH ONLY (${exposedPath.size})`}
+          </button>
+        )
       ) : null}
 
       {/* hover tooltip */}
-      {ready && hover
+      {ready && shownHover
         ? (() => {
+            const hover = shownHover;
             const [hx, hy] = project(hover.lng, hover.lat);
             const flip = hx > w - 180;
             const affectedCount = affected[SITE_ALIAS[hover.id] ?? hover.id];
@@ -1415,10 +1496,44 @@ export function WorldMap({
         : null}
 
       <NodeDetailPanel
-        detail={selected ? detailFor(selected) : null}
+        detail={shownSelected ? detailFor(shownSelected) : null}
         onClose={() => setSelected(null)}
       />
     </div>
+  );
+}
+
+function ScopeRow({
+  active,
+  label,
+  title,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  title: string;
+  onClick: () => void;
+}) {
+  // One row of the focused scope ladder. Same vocabulary as the base toggle
+  // (▣ current / ▢ available, --fs-label, quiet corner text): the ladder is
+  // the toggle grown a rung, not a new widget. Every row is clickable and
+  // says on hover what clicking does; the previous isolation affordance
+  // failed for lacking exactly that.
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      className={`label flex items-center gap-1 transition-colors hover:text-interactive ${
+        active ? "text-secondary" : "text-dim"
+      }`}
+    >
+      <span aria-hidden>{active ? "▣" : "▢"}</span> {label}
+    </button>
   );
 }
 

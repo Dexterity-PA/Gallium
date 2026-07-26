@@ -10,6 +10,7 @@
 // leave the canvas room to grow, not to be a second legend.
 
 import type { GraphTally } from "@/components/graph/graphDerive";
+import type { ScopeFocus } from "@/components/graph/flowModel";
 
 function Count({ dot, value }: { dot: string; value: number }) {
   return (
@@ -22,7 +23,17 @@ function Count({ dot, value }: { dot: string; value: number }) {
   );
 }
 
-export function GraphStats({ tally, scope }: { tally: GraphTally; scope: string }) {
+export function GraphStats({
+  tally,
+  scope,
+  focus,
+}: {
+  tally: GraphTally;
+  scope: string;
+  /** The focused-part row (flowModel.ts tallyForScope). Absent when nothing
+   *  is focused, so the unfocused block renders exactly as before. */
+  focus?: ScopeFocus | null;
+}) {
   const T = tally;
   return (
     <div
@@ -54,6 +65,32 @@ export function GraphStats({ tally, scope }: { tally: GraphTally; scope: string 
         </span>
         <span>{T.observedSharePct.toFixed(1)}%</span>
       </div>
+
+      {/* The focused part, when there is one. Both branches come from the
+          same tallyForScope call the header reads, so this row and the
+          panel corner cannot disagree about the focused state. The no-path
+          branch is the graceful degrade: base scope stays rendered, the
+          reason is stated quietly, nothing is drawn for the part. */}
+      {focus ? (
+        focus.kind === "path" ? (
+          <div className="mt-1 flex items-center justify-between gap-2 text-[10px] tabular-nums tracking-[0.04em]">
+            <span className="min-w-0 truncate" style={{ color: "var(--trace)" }}>
+              FOCUS {focus.mpn}
+            </span>
+            <span className="shrink-0 text-dim">
+              {focus.tally.nodeTotal}N · {focus.tally.edgeTotal}E
+            </span>
+          </div>
+        ) : (
+          <div className="mt-1 text-[10px] tracking-[0.04em]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="min-w-0 truncate text-dim">FOCUS {focus.mpn}</span>
+              <span className="shrink-0 text-dim">NO PATH</span>
+            </div>
+            <div className="text-[9px] tracking-[0.02em] text-dim">{focus.reason}</div>
+          </div>
+        )
+      ) : null}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { BomLine } from "@/lib/types";
 import { ACTION_CODE } from "@/components/resolve/rollup";
 import type { ScenarioPlan } from "@/lib/derive/plan";
+import { useFocusedPart, resolveFocusValue } from "@/lib/focus";
 
 // The left rail of RESOLVE: all 16 lines requiring action, one --row-h row
 // each at --fs-body, no wrapping. Three sections that sum to the reconciled
@@ -59,6 +60,8 @@ function LineRow({
   compliance,
   resolved,
   highlighted,
+  focused,
+  onSelect,
 }: {
   line: BomLine;
   actionId: string | undefined;
@@ -66,6 +69,10 @@ function LineRow({
   compliance: boolean;
   resolved: boolean;
   highlighted: boolean;
+  /** This row is the app-wide focused part (lib/focus). */
+  focused: boolean;
+  /** Click / Enter toggles app-wide focus onto this line. */
+  onSelect?: () => void;
 }) {
   const modeled = line.provenance === "MODELED";
 
@@ -91,15 +98,32 @@ function LineRow({
     mpnColor = resolved ? "var(--text-secondary)" : "var(--text-primary)";
   }
 
+  // Focus reuses the hover-rule treatment (2px --focus left rule + elevated
+  // wash) but persists: same visual grammar, one meaning, "look at this row".
+  const marked = highlighted || focused;
+
   return (
     <div
-      className="grid items-center px-2 text-body"
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onClick={onSelect}
+      onKeyDown={
+        onSelect
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect();
+              }
+            }
+          : undefined
+      }
+      className={`grid items-center px-2 text-body${onSelect ? " cursor-pointer" : ""}`}
       style={{
         gridTemplateColumns: COLS,
         columnGap: GAP,
         height: "var(--row-h)",
-        borderLeft: `2px solid ${highlighted ? "var(--focus)" : "transparent"}`,
-        background: highlighted ? "var(--bg-elevated)" : "transparent",
+        borderLeft: `2px solid ${marked ? "var(--focus)" : "transparent"}`,
+        background: marked ? "var(--bg-elevated)" : "transparent",
         transition:
           "color 200ms ease-out, background-color 200ms ease-out, border-color 200ms ease-out",
       }}
@@ -158,6 +182,8 @@ export function ExposedLines({
   actionedIds: ReadonlySet<string>;
   hoveredActionId: string | null;
 }) {
+  const { focusedPart, setFocusedPart, clearFocus } = useFocusedPart();
+
   // line id -> the action that recovers it, under THIS scenario's coverage.
   const lineToAction = useMemo(() => {
     const m = new Map<string, string>();
@@ -169,6 +195,14 @@ export function ExposedLines({
 
   const rowFor = (line: BomLine, compliance = false) => {
     const actionId = lineToAction.get(line.id);
+    // Clicking a row focuses the part app-wide; clicking the focused row
+    // clears it (a toggle, so the panel needs no separate "unfocus" control).
+    // The canonical BOM object goes through resolveFocusValue, the same
+    // resolver the ?focus= URL param uses, so a line that would not survive
+    // the provider's own round-trip is simply not clickable rather than
+    // flashing focused and self-clearing. Today all 31 lines resolve.
+    const canonical = resolveFocusValue(line.mpn);
+    const focused = focusedPart?.id === line.id;
     return (
       <LineRow
         key={line.id}
@@ -177,6 +211,12 @@ export function ExposedLines({
         compliance={compliance}
         resolved={Boolean(actionId && actionedIds.has(actionId))}
         highlighted={Boolean(actionId && actionId === hoveredActionId)}
+        focused={focused}
+        onSelect={
+          canonical
+            ? () => (focused ? clearFocus() : setFocusedPart(canonical))
+            : undefined
+        }
       />
     );
   };
@@ -192,16 +232,11 @@ export function ExposedLines({
         {plan.complianceLines.map((l) => rowFor(l, true))}
 
         <SectionRow label="Modeled · inferred" count={plan.modeledExposed.length} />
-        {plan.modeledExposed.map((line) => (
-          <LineRow
-            key={line.id}
-            line={line}
-            actionId={undefined}
-            compliance={false}
-            resolved={false}
-            highlighted={false}
-          />
-        ))}
+        {/* Modeled lines are never covered by an action (lineToAction has no
+            entry), so rowFor reproduces the fixed FLAGGED rendering exactly
+            while giving them the same focus behavior as every other row:
+            inferred lines are still parts you can ask the app about. */}
+        {plan.modeledExposed.map((line) => rowFor(line))}
 
         <div className="border-t border-rule px-2 py-1.5 text-label leading-relaxed text-dim">
           <span className="text-modeled">MODELED</span> lines are inferred

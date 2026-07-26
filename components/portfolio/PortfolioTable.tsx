@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { riskLabel, type PortfolioProduct } from "@/lib/data/portfolio";
+import { PRODUCTS } from "@/lib/data/products";
+import { useFocusedPart } from "@/lib/focus";
 import { BAND_INSET } from "@/components/portfolio/layout";
 
 /* ============================================================
@@ -170,12 +172,17 @@ function RowBody({
   rank,
   worst,
   binding,
+  focusMpn,
 }: {
   p: PortfolioProduct;
   rank: number;
   worst: boolean;
   /** This product sets the soonest halt in the line. */
   binding: boolean;
+  /** Non-null when the app-wide focused part (lib/focus) sits on this
+   *  product's resolved BOM. The only per-part claim a product rollup can
+   *  truthfully make is membership, so that is all the marker says. */
+  focusMpn: string | null;
 }) {
   const hot = p.exposedLines > 0;
   const exposureTone = hot ? "var(--critical)" : "var(--text-dim)";
@@ -201,6 +208,15 @@ function RowBody({
           }}
         >
           {p.code}
+          {focusMpn ? (
+            // Inline in the code line, never a new line: the rows are flex-1
+            // and their content height is load-bearing at 1280x700 (see the
+            // clipping guard below). Dim label tone, no new colour: the row's
+            // own accents keep their meanings.
+            <span className="label ml-2" style={{ fontWeight: 400 }}>
+              · CONTAINS {focusMpn}
+            </span>
+          ) : null}
         </div>
         <div className="truncate text-body text-secondary">{p.description}</div>
       </div>
@@ -246,6 +262,24 @@ function RowBody({
 export function PortfolioTable({ rows }: { rows: PortfolioProduct[] }) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const soonestHalt = Math.min(...rows.map((p) => p.daysToHalt));
+
+  /* App-wide part focus (lib/focus). A product row is a rollup, so the only
+     per-part statement it can make honestly is MEMBERSHIP: this product's
+     resolved BOM contains the focused MPN. Eleven of the MD-7200 MPNs recur
+     on other products' BOMs, so the marker genuinely discriminates rather
+     than always pointing at one row. With nothing focused this computes
+     nothing and the table renders exactly as before. */
+  const { focusedPart } = useFocusedPart();
+  const focusOwners = useMemo(() => {
+    if (!focusedPart) return null;
+    const owners = new Set<string>();
+    for (const product of PRODUCTS) {
+      if (product.lines.some((l) => l.mpn === focusedPart.mpn)) {
+        owners.add(product.code);
+      }
+    }
+    return owners;
+  }, [focusedPart]);
 
   /* Layout guard, dev only.
 
@@ -355,6 +389,11 @@ export function PortfolioTable({ rows }: { rows: PortfolioProduct[] }) {
                 rank={i + 1}
                 worst={worst}
                 binding={p.daysToHalt === soonestHalt}
+                focusMpn={
+                  focusedPart && focusOwners?.has(p.code)
+                    ? focusedPart.mpn
+                    : null
+                }
               />
             </Link>
           );

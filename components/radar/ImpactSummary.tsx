@@ -5,6 +5,7 @@ import { PRIMARY_EVENT } from "@/lib/data/event";
 import { CUSTOMER } from "@/lib/data/customer";
 import { BOM } from "@/lib/data/bom";
 import { useScenario } from "@/lib/hooks/useScenario";
+import { useFocusedPart } from "@/lib/focus";
 import {
   deriveScenarioImpact,
   BASELINE_LEAD_TIME_WEEKS,
@@ -54,18 +55,13 @@ function ScenarioField({
   );
 }
 
-export function ImpactSummary({
-  active,
-  isolatedPart,
-  onSelectPart,
-}: {
-  active: boolean;
-  // The BOM line id currently isolated on the map, or null. Passed straight
-  // through from the page: this panel is where the isolation is TRIGGERED
-  // (a part row click), the map is where it is SHOWN.
-  isolatedPart?: string | null;
-  onSelectPart?: (bomId: string) => void;
-}) {
+export function ImpactSummary({ active }: { active: boolean }) {
+  // The focused part is app-level state (lib/focus), not a prop: this panel
+  // is where the isolation is TRIGGERED (a part row click), the map is where
+  // it is SHOWN, and EXPOSURE/GRAPH read the very same object. Clicking a
+  // focused row again, or the ISOLATED line above the bar, clears it.
+  const { focusedPart, setFocusedPart, clearFocus } = useFocusedPart();
+  const isolatedPart = focusedPart?.id ?? null;
   // Scenario control state is app-level (lib/hooks/useScenario.tsx): the
   // same control drives RESOLVE, GRAPH and PORTFOLIO, so this panel is the
   // cockpit, not the whole instrument. The model (lib/derive/scenario.ts)
@@ -172,14 +168,14 @@ export function ImpactSummary({
           the status line above the bar once isolated, to clear. */}
       <div className="mt-1 shrink-0">
         <div className="mb-1 flex items-center justify-between">
-          {isolatedPart ? (
+          {focusedPart ? (
             <button
               type="button"
               className="label truncate text-dim transition-colors hover:text-interactive"
-              onClick={() => onSelectPart?.(isolatedPart)}
+              onClick={clearFocus}
               title="CLICK TO CLEAR"
             >
-              ISOLATED: {BOM_BY_ID.get(isolatedPart)?.mpn ?? isolatedPart} · CLEAR
+              ISOLATED: {focusedPart.mpn} · CLEAR
             </button>
           ) : (
             <span className="label">EXPOSURE MAP</span>
@@ -195,13 +191,17 @@ export function ImpactSummary({
             const bomId = i < impact.exposedLineIds.length ? impact.exposedLineIds[i] : null;
             const bomLine = bomId ? BOM_BY_ID.get(bomId) : undefined;
             const isIsolated = !!bomId && isolatedPart === bomId;
-            const clickable = on && !!bomId && !!onSelectPart;
+            const clickable = on && !!bomLine;
             return (
               <div
                 key={i}
                 className="h-4 flex-1"
                 title={bomLine ? `${bomLine.mpn} · CLICK TO ISOLATE ON MAP` : undefined}
-                onClick={clickable ? () => onSelectPart!(bomId!) : undefined}
+                onClick={
+                  clickable
+                    ? () => (isIsolated ? clearFocus() : setFocusedPart(bomLine!))
+                    : undefined
+                }
                 style={{
                   background: on ? "var(--critical)" : "var(--bg-elevated)",
                   border:

@@ -201,10 +201,19 @@ export function ActionCard({
         <span className="shrink-0 text-label text-dim">
           {ACTION_CODE[action.id]}
         </span>
-        <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-value uppercase text-primary">
+        {/* Below lg the title is the only flexible item and truncates when
+            the row runs out. At lg+ the rationale is visible, so the SLACK
+            moves to it: the title takes its natural width (flex-initial) and
+            the rationale takes flex-1 of whatever is left. The old layout
+            kept flex-1 on the title and hard-capped the rationale at 46ch
+            shrink-0, so every collapsed row ellipsized its summary mid-word
+            while the title's grown, empty flex space sat beside it as a wide
+            gap. The summary now uses the real available width and only
+            ellipsizes when the row is genuinely out of room. */}
+        <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-value uppercase text-primary lg:flex-initial">
           {action.title}
         </span>
-        <span className="hidden shrink-0 overflow-hidden text-ellipsis whitespace-nowrap text-label text-dim lg:block lg:max-w-[46ch]">
+        <span className="hidden min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-label text-dim lg:block">
           {action.rationale}
         </span>
         {actioned ? (

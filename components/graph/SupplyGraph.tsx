@@ -11,8 +11,8 @@ import {
 import {
   LAYOUT,
   NODE_BY_ID,
-  SCOPE_LABEL,
   type FlowView,
+  type ScopeView,
 } from "@/components/graph/flowModel";
 import {
   NodeDetailPanel,
@@ -159,6 +159,7 @@ interface Palette {
 
 export function SupplyGraph({
   view,
+  scopeView,
   fullNetwork,
   onToggleFullNetwork,
 }: {
@@ -166,6 +167,12 @@ export function SupplyGraph({
    *  component on view.key, so within one mount the view never changes and
    *  a scenario change replays the reveal sequence from a clean canvas. */
   view: FlowView;
+  /** The ONE tallyForScope result the page header also reads: base scope +
+   *  tally for the stats block, plus the focused part's path membership for
+   *  the dim layer below. Focus changes flow in as a normal prop change, so
+   *  the re-render hands the canvas fresh draw callbacks and the dim state
+   *  reaches the next painted frame (nothing here is memoized against it). */
+  scopeView: ScopeView;
   fullNetwork: boolean;
   onToggleFullNetwork: () => void;
 }) {
@@ -438,22 +445,34 @@ export function SupplyGraph({
   const colStageMs = (col: 0 | 1 | 2) =>
     col === 0 ? SCHEDULE.originAtMs : col === 1 ? SCHEDULE.column2AtMs : SCHEDULE.column3AtMs;
 
+  // The app-level focused part (lib/focus), already resolved to flow path
+  // membership by tallyForScope: origin + supplier + BOM node. Null when
+  // nothing is focused OR the part has no path in this scenario (in which
+  // case the base rendering stands untouched and the stats block states the
+  // reason). Focus is the third, lowest-precedence dim layer: an explicit
+  // click selection, then hover, then focus. Same dim treatment as the
+  // other two layers, so "context weight" means one thing on this screen.
+  const focusIds = scopeView.focusPath?.nodeIds ?? null;
+
   const isDimmed = (id: string): boolean => {
     if (selected.current !== null) {
       return id !== selected.current.id && !neighborIds.current.has(id);
     }
     if (hovered.current.size > 0) return !hovered.current.has(id);
+    if (focusIds) return !focusIds.has(id);
     return false;
   };
   const linkDimmed = (l: any): boolean => {
     const s = endId(l.source);
     const t = endId(l.target);
-    const active =
+    // A flow edge is on the focus path iff BOTH endpoints are members,
+    // exactly the containment rule the selection and hover sets use.
+    const active: ReadonlySet<string> | null =
       selected.current !== null
         ? neighborIds.current
         : hovered.current.size > 0
         ? hovered.current
-        : null;
+        : focusIds;
     if (!active) return false;
     return !(active.has(s) && active.has(t));
   };
@@ -758,10 +777,7 @@ export function SupplyGraph({
         {SCHEDULE.headerLabel}
       </div>
 
-      <GraphStats
-        tally={fullNetwork ? view.fullTally : view.foregroundTally}
-        scope={fullNetwork ? SCOPE_LABEL.full : SCOPE_LABEL.foreground}
-      />
+      <GraphStats tally={scopeView.tally} scope={scopeView.scope} focus={scopeView.focus} />
 
       <NodeDetailPanel
         detail={detailNode ? detailFor(detailNode) : null}

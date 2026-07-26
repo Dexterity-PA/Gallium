@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FEED_EVENTS } from "@/lib/data/event";
 import { CUSTOMER } from "@/lib/data/customer";
 import { useDemoClock, formatClock } from "@/lib/hooks/useDemoClock";
+import { useFocusedPart } from "@/lib/focus";
 import { EventFeed, type FeedRow } from "@/components/radar/EventFeed";
 import { WorldMap, MAP_WINDOW, type MapFocusRequest } from "@/components/radar/WorldMap";
 import { ImpactSummary } from "@/components/radar/ImpactSummary";
@@ -36,10 +37,10 @@ export default function RadarPage() {
   const [arrived, setArrived] = useState(0);
   const [flashKey, setFlashKey] = useState<string | null>(null);
   const [focus, setFocus] = useState<MapFocusRequest | null>(null);
-  // BOM line id currently isolated on the map ("BOM-07"), or null. Lives here
-  // because it flows from the Impact panel (where a part row is clicked) to
-  // the map (where the path is drawn); clicking the same row again clears it.
-  const [isolatedPart, setIsolatedPart] = useState<string | null>(null);
+  // The part isolated on the map is the app-level focused part (lib/focus):
+  // triggered in the Impact panel (or the command palette, or a ?focus= deep
+  // link), drawn here, and still focused after navigating to another screen.
+  const { focusedPart } = useFocusedPart();
 
   // Scripted arrivals at 3.2s / 5.6s / 8.0s (DATA.md §2). Deterministic offsets.
   useEffect(() => {
@@ -95,7 +96,7 @@ export default function RadarPage() {
         noPad
         bodyClassName="overflow-hidden"
       >
-        <WorldMap focus={focus} isolate={isolatedPart} />
+        <WorldMap focus={focus} isolate={focusedPart?.id ?? null} />
       </Panel>
 
       <Panel
@@ -105,11 +106,7 @@ export default function RadarPage() {
         noPad
         bodyClassName="overflow-auto"
       >
-        <ImpactSummary
-          active={impactActive}
-          isolatedPart={isolatedPart}
-          onSelectPart={(bomId) => setIsolatedPart((cur) => (cur === bomId ? null : bomId))}
-        />
+        <ImpactSummary active={impactActive} />
       </Panel>
     </div>
   );

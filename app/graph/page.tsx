@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { Panel } from "@/components/ui/Panel";
 import { SupplyGraph } from "@/components/graph/SupplyGraph";
 import { GraphLegend } from "@/components/graph/GraphLegend";
-import { SCOPE_LABEL, flowViewFor } from "@/components/graph/flowModel";
+import { flowViewFor, tallyForScope } from "@/components/graph/flowModel";
 import { useScenario } from "@/lib/hooks/useScenario";
+import { useFocusedPart } from "@/lib/focus";
 
 export default function GraphPage() {
   // The full-network toggle lives here, not inside SupplyGraph, because the
@@ -20,14 +21,30 @@ export default function GraphPage() {
   // the view so a scenario change replays the reveal from a clean frame.
   const { control } = useScenario();
   const view = useMemo(() => flowViewFor(control), [control]);
-  const tally = fullNetwork ? view.fullTally : view.foregroundTally;
-  const scope = fullNetwork ? SCOPE_LABEL.full : SCOPE_LABEL.foreground;
+
+  // App-level focus is a third state layered over the base scope: the
+  // focused part's origin > supplier > BOM chain holds full weight and the
+  // rest drops to context weight. ONE tallyForScope call describes the
+  // whole state; the header below and the stats block inside SupplyGraph
+  // both read this same object, so they agree by construction. Clearing
+  // focus leaves fullNetwork untouched: the user lands back in exactly the
+  // base state they were in.
+  const { focusedPart } = useFocusedPart();
+  const scopeView = useMemo(
+    () => tallyForScope(view, fullNetwork, focusedPart),
+    [view, fullNetwork, focusedPart]
+  );
+  const { scope, tally, focus } = scopeView;
+  const corner =
+    focus?.kind === "path"
+      ? `${scope} · ${tally.nodeTotal} NODES · ${tally.edgeTotal} EDGES · FOCUS ${focus.mpn}`
+      : `${scope} · ${tally.nodeTotal} NODES · ${tally.edgeTotal} EDGES`;
 
   return (
     <div className="h-full">
       <Panel
         label="Supply Graph · Contamination Model"
-        corner={`${scope} · ${tally.nodeTotal} NODES · ${tally.edgeTotal} EDGES`}
+        corner={corner}
         className="h-full"
         noPad
         bodyClassName="overflow-hidden"
@@ -36,6 +53,7 @@ export default function GraphPage() {
           <SupplyGraph
             key={view.key}
             view={view}
+            scopeView={scopeView}
             fullNetwork={fullNetwork}
             onToggleFullNetwork={() => setFullNetwork((v) => !v)}
           />

@@ -14,8 +14,9 @@ import { CommandPalette } from "@/components/chrome/CommandPalette";
 // shell so every screen, and every build, evaluates them. The import is the
 // guard; the value is only re-exported to keep the import un-elidable.
 import { SCENARIO_GUARDS_OK } from "@/lib/derive/guards";
+import { FOCUS_GUARDS_OK } from "@/lib/focus/guards";
 
-export const GUARDS = SCENARIO_GUARDS_OK;
+export const GUARDS = SCENARIO_GUARDS_OK && FOCUS_GUARDS_OK;
 
 // The fixed instrument panel (DESIGN.md §4). 100vh, no page scroll; the two
 // chrome bands never scroll away. 1px hairlines separate every region.

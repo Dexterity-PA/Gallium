@@ -17,7 +17,7 @@ import {
 } from "@/components/graph/ContaminationSequence";
 import { buildFlowLayout, type FlowEdge, type FlowLayout } from "@/components/graph/graphLayout";
 import { graphTally, type GraphTally } from "@/components/graph/graphDerive";
-import type { Status } from "@/lib/types";
+import type { BomLine, Status } from "@/lib/types";
 import {
   type ScenarioControlState,
   isDefaultScenarioControl,
@@ -109,16 +109,12 @@ function foregroundTallyFor(
 
 export const FOREGROUND_TALLY: GraphTally = foregroundTallyFor(LAYOUT);
 
-// The two scopes this screen can be in, named once so the panel header and the
-// on-canvas stats block use the same word for the same thing.
+// The two base scopes this screen can be in, named once so the panel header
+// and the on-canvas stats block use the same word for the same thing.
 export const SCOPE_LABEL = {
   foreground: "EXPOSED PATH",
   full: "FULL NETWORK",
 } as const;
-
-export function tallyForScope(fullNetwork: boolean): GraphTally {
-  return fullNetwork ? FULL_TALLY : FOREGROUND_TALLY;
-}
 
 /* ---- the scenario view ------------------------------------------------
    Everything the GRAPH screen draws for one scenario, in one object, so the
@@ -193,5 +189,111 @@ export function computeDefaultFlowView(control: ScenarioControlState): {
     schedule,
     foregroundTally: foregroundTallyFor(layout, view.status),
     fullTally: graphTally(view.status),
+  };
+}
+
+/* ---- the focused part -------------------------------------------------
+   App-level focus (lib/focus) lands here as path MEMBERSHIP in the flow:
+   the focused BOM line's node, the one supplier standing behind it, and the
+   origin site, plus the two rendered edges linking them. Focus is a third
+   state layered over whichever base scope (foreground / full network) the
+   user is in: the path holds full weight on the canvas, everything else
+   drops to context weight, and clearing focus returns to the untouched base
+   scope. Nothing about the base view is recomputed.
+
+   A BOM line's graph node is `G-${line.id}` (lib/data/graph.ts buildGraph;
+   the same convention components/exposure/derive.ts and WorldMap already
+   rely on). A line whose node is not in the schedule's tier1 set has no
+   path in the CURRENT scenario's flow (only exposed, origin-reachable lines
+   are drawn), so focusPathFor returns null and the caller degrades: base
+   rendering intact, reason stated quietly, nothing drawn that the data
+   does not support. */
+export interface FocusPath {
+  mpn: string;
+  originId: string;
+  supplierId: string;
+  bomNodeId: string;
+  /** Membership set for the canvas dim layer. An edge is on the path iff
+   *  BOTH its endpoints are members (the flow only has adjacent-column
+   *  edges, so this cannot capture a stray edge). */
+  nodeIds: ReadonlySet<string>;
+}
+
+export function focusPathFor(view: FlowView, line: BomLine | null): FocusPath | null {
+  if (!line) return null;
+  const bomNodeId = `G-${line.id}`;
+  const { schedule } = view;
+  if (!schedule.tier1Ids.includes(bomNodeId)) return null;
+  const supplierId = schedule.supplierOfBom.get(bomNodeId);
+  if (!supplierId) return null;
+  return {
+    mpn: line.mpn,
+    originId: schedule.originId,
+    supplierId,
+    bomNodeId,
+    nodeIds: new Set([schedule.originId, supplierId, bomNodeId]),
+  };
+}
+
+// Counted off the exact layout objects the renderer holds at full weight,
+// same construction rule as foregroundTallyFor: no parallel re-derivation.
+function focusTallyFor(view: FlowView, path: FocusPath): GraphTally {
+  const filtered: FlowLayout = {
+    ...view.layout,
+    nodes: view.layout.nodes.filter((n) => path.nodeIds.has(n.id)),
+    edges: view.layout.edges.filter(
+      (e) => path.nodeIds.has(e.source) && path.nodeIds.has(e.target)
+    ),
+  };
+  return foregroundTallyFor(filtered, view.status ?? undefined);
+}
+
+export type ScopeFocus =
+  | { kind: "path"; mpn: string; tally: GraphTally }
+  | { kind: "no-path"; mpn: string; reason: string };
+
+/** Everything the header and the stats block say about the current scope,
+ *  from ONE call. The page computes this once and hands it to the canvas,
+ *  so the two surfaces cannot disagree; they are reading the same object. */
+export interface ScopeView {
+  scope: string;
+  tally: GraphTally;
+  /** Path membership for the canvas dim layer; null when nothing is
+   *  focused OR the focused part has no path in this scenario's flow. */
+  focusPath: FocusPath | null;
+  /** What the focused state adds to the readouts; null when unfocused. */
+  focus: ScopeFocus | null;
+}
+
+// The single tally path for this screen. The base scope's label and tally
+// are untouched by focus (focus dims context, it does not change what is
+// rendered), so with focusedPart null this returns exactly the pre-focus
+// header and stats content.
+export function tallyForScope(
+  view: FlowView,
+  fullNetwork: boolean,
+  focusedPart: BomLine | null = null
+): ScopeView {
+  const scope = fullNetwork ? SCOPE_LABEL.full : SCOPE_LABEL.foreground;
+  const tally = fullNetwork ? view.fullTally : view.foregroundTally;
+  if (!focusedPart) return { scope, tally, focusPath: null, focus: null };
+  const path = focusPathFor(view, focusedPart);
+  if (!path) {
+    return {
+      scope,
+      tally,
+      focusPath: null,
+      focus: {
+        kind: "no-path",
+        mpn: focusedPart.mpn,
+        reason: "not on this scenario's contamination path",
+      },
+    };
+  }
+  return {
+    scope,
+    tally,
+    focusPath: path,
+    focus: { kind: "path", mpn: focusedPart.mpn, tally: focusTallyFor(view, path) },
   };
 }

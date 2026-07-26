@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useFocusedPart, FOCUS_PARAM } from "@/lib/focus";
 import { BOM } from "@/lib/data/bom";
 import { SITES } from "@/lib/data/sites";
 import { ACTIONS } from "@/lib/data/actions";
@@ -29,13 +30,15 @@ const KIND_COLOR: Record<EntryKind, string> = {
 };
 
 function buildCorpus(): Entry[] {
+  // PART rows carry the MPN, the public ?focus= currency (lib/focus): the
+  // deep link reads as /exposure?focus=VS-GT100TS60U, not an internal id.
   const parts: Entry[] = BOM.map((b) => ({
     kind: "PART",
     id: b.id,
     label: b.mpn,
     sub: b.description,
     href: "/exposure",
-    focus: b.id,
+    focus: b.mpn,
   }));
   const suppliers: Entry[] = GRAPH.nodes
     .filter((n) => n.kind === "SUPPLIER")
@@ -84,6 +87,7 @@ export function CommandPalette({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { setFocusedPart } = useFocusedPart();
   const corpus = useMemo(buildCorpus, []);
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
@@ -119,7 +123,18 @@ export function CommandPalette({
   const commit = (entry: Entry | undefined) => {
     if (!entry) return;
     onClose();
-    router.push(entry.focus ? `${entry.href}?focus=${entry.focus}` : entry.href);
+    // PART rows set the shared focused-part state directly (lib/focus), so
+    // every screen reacts immediately; the ?focus= param on the pushed URL
+    // is the durable deep-link representation of the same thing.
+    if (entry.kind === "PART") {
+      const line = BOM.find((b) => b.id === entry.id);
+      if (line) setFocusedPart(line);
+    }
+    router.push(
+      entry.focus
+        ? `${entry.href}?${FOCUS_PARAM}=${encodeURIComponent(entry.focus)}`
+        : entry.href
+    );
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
