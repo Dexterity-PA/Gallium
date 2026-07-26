@@ -1,43 +1,39 @@
-// Graph legend (DESIGN/BRIEF Screen 3). Bottom-left, always visible. Each status
-// is EXPLAINED, not just named — that meaning is the part a viewer needs — and
-// the observed-vs-modeled edge distinction is spelled out.
+// Graph legend for the three-column exposure flow (DESIGN/BRIEF Screen 3
+// rebuild). Bottom-left, always visible. A footnote, not a panel: three
+// rows, each folding a second, shorter explanation into its phrasing.
+//
+// Rendered from app/graph/page.tsx (outside components/graph/, so it can't
+// take a prop from SupplyGraph without editing a file out of scope). The
+// full-network node count is read directly from GRAPH here instead, the
+// same source SupplyGraph's own full-network tally derives from, so the two
+// can't drift apart even though they're computed in different places.
 
-function Row({ color, label, desc }: { color: string; label: string; desc: string }) {
+import type { ReactNode } from "react";
+import { GRAPH } from "@/lib/data/graph";
+
+function Row({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline gap-1.5">
-      <span className="shrink-0 text-[9px] leading-none" style={{ color }} aria-hidden>
-        ●
-      </span>
-      <span className="w-[52px] shrink-0 tracking-[0.06em] text-[var(--text-mid)]">
-        {label}
-      </span>
-      <span className="text-[var(--text-lo)]">{desc}</span>
+      <span className="w-[78px] shrink-0 tracking-[0.06em] text-secondary">{term}</span>
+      <span className="text-dim">{children}</span>
     </div>
   );
 }
 
 export function GraphLegend() {
+  const fullNetworkNodeCount = GRAPH.nodes.length;
   return (
-    <div className="pointer-events-none absolute bottom-2 left-2 z-10 max-w-[340px] select-none border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-base)_85%,transparent)] px-2 py-1.5 text-[9px] leading-[1.6] tracking-[0.02em]">
+    <div className="pointer-events-none absolute bottom-2 left-2 z-10 max-w-[520px] select-none border border-rule bg-[color-mix(in_srgb,var(--bg-base)_85%,transparent)] px-2 py-1 text-[9px] leading-[1.5] tracking-[0.02em]">
       <div className="flex flex-col gap-0.5">
-        <Row color="var(--green)" label="CLEAR" desc="no exposure to the active scenario" />
-        <Row color="var(--orange)" label="AT RISK" desc="indirect or partial exposure" />
-        <Row color="var(--red)" label="EXPOSED" desc="routes through the affected node" />
-        <Row
-          color="var(--violet)"
-          label="MODELED"
-          desc="inferred from industry structure, not observed per part"
-        />
-      </div>
-      <div className="mt-1 flex flex-col gap-0.5 border-t border-[var(--border)] pt-1">
-        <div className="flex items-center gap-1.5 text-[var(--text-lo)]">
-          <span className="inline-block h-0 w-5 border-t border-[var(--border-hot)]" />
-          solid edge = observed relationship
-        </div>
-        <div className="flex items-center gap-1.5 text-[var(--text-lo)]">
-          <span className="inline-block h-0 w-5 border-t border-dashed border-[var(--violet)]" />
-          dotted edge = modeled
-        </div>
+        <Row term="COLUMNS">
+          site → suppliers → BOM lines · tick + number = hops via a zone site
+        </Row>
+        <Row term="EDGE WEIGHT">
+          heavier / brighter = more lines · heavy ring = feeds &gt;1 line
+        </Row>
+        <Row term="FULL NETWORK">
+          off by default, shows all {fullNetworkNodeCount} nodes as faint context when on
+        </Row>
       </div>
     </div>
   );

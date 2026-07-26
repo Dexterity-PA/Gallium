@@ -26,7 +26,7 @@ function nodeSources(n: NodeSeed): string[] {
 
 // The one edge in the graph we admit we cannot see well enough to report on.
 // Leadframe supply into the modeled leadframe cluster is a single-thread
-// inference off market structure — no import record, no filing, one signal.
+// inference off market structure: no import record, no filing, one signal.
 // It is pinned below the 60% reporting floor and routed to its own inference
 // document so the provenance drawer says INSUFFICIENT COVERAGE rather than
 // dressing a guess up as a measurement. A tool with no such edge is lying.
@@ -206,7 +206,7 @@ const SUPPLIER_SITE: Record<string, { primary: string; zone?: string; secondary?
   "S-SUBS": { primary: "NODE-SUBS", zone: "NODE-SUBS" },
   "S-LEADFR": { primary: "NODE-LF", zone: "NODE-LF" },
   "S-ASSY": { primary: "NODE-ZONE-MDL", zone: "NODE-ZONE-MDL" },
-  // non-exposed suppliers — route through safe sites only
+  // non-exposed suppliers: route through safe sites only
   "S-VISHAY": { primary: "NODE-OST" },
   "S-WURTH": { primary: "NODE-MUC" },
   "S-SANYO": { primary: "NODE-MNL" },
@@ -253,7 +253,7 @@ function buildGraph(): GraphData & {
     exposureValue: 40,
   });
 
-  // ring 1 — BOM
+  // ring 1: BOM
   const exposedBomNodeIds: string[] = [];
   for (const b of BOM) {
     const nid = `G-${b.id}`;
@@ -288,7 +288,7 @@ function buildGraph(): GraphData & {
     supplierStatus[sup] = worst(supplierStatus[sup] ?? "CLEAR", b.status);
   }
 
-  // ring 2 — suppliers
+  // ring 2: suppliers
   for (const s of SUPPLIERS) {
     const st = supplierStatus[s.id] ?? "CLEAR";
     nodes.push({
@@ -333,7 +333,7 @@ function buildGraph(): GraphData & {
     }
   }
 
-  // ring 3 — sites
+  // ring 3: sites
   for (const s of GRAPH_SITES) {
     const st: Status = s.exposed ? "EXPOSED" : siteStatus[s.id] ?? "CLEAR";
     const modeled = s.id.includes("MDL") || s.id === "NODE-SUBS" || s.id === "NODE-LF";
@@ -350,7 +350,7 @@ function buildGraph(): GraphData & {
     });
   }
 
-  // zone linkage — origin reaches every exposed zone site
+  // zone linkage: origin reaches every exposed zone site
   for (const z of EXPOSED_SITES) {
     if (z === PROPAGATION_ORIGIN_ID) continue;
     const modeled = z.includes("MDL") || z === "NODE-SUBS" || z === "NODE-LF";
@@ -363,8 +363,8 @@ function buildGraph(): GraphData & {
   }
 
   // logistics realism: quarantine origin → port → air reroute → inbound.
-  // The air reroute is the weakest of the three — a booking intent, not a
-  // movement we have watched happen — so it reads lower than the two legs
+  // The air reroute is the weakest of the three (a booking intent, not a
+  // movement we have watched happen), so it reads lower than the two legs
   // either side of it.
   edges.push({
     source: "NODE-KHH-ASE",
@@ -493,7 +493,7 @@ export const GRAPH_CONFIDENCE_OK = (() => {
   const distinctModeled = new Set(modeled.map((e) => e.confidence)).size;
   if (distinctModeled < 8) {
     throw new Error(
-      `modeled edge confidences are too uniform — ${distinctModeled} distinct values across ${modeled.length} edges`
+      `modeled edge confidences are too uniform: ${distinctModeled} distinct values across ${modeled.length} edges`
     );
   }
 

@@ -18,11 +18,14 @@ interface Entry {
   focus?: string;
 }
 
+// Kind badges are wayfinding, not a RULE 4 severity signal: PART/SUPPLIER/SITE
+// stay --text-secondary and let the 3-letter code do the differentiating.
+// ACTION alone gets --focus — it is literally "you can act on this" (RULE 9).
 const KIND_COLOR: Record<EntryKind, string> = {
-  PART: "var(--cyan)",
-  SUPPLIER: "var(--text-mid)",
-  SITE: "var(--green)",
-  ACTION: "var(--amber)",
+  PART: "var(--text-secondary)",
+  SUPPLIER: "var(--text-secondary)",
+  SITE: "var(--text-secondary)",
+  ACTION: "var(--focus)",
 };
 
 function buildCorpus(): Entry[] {
@@ -138,12 +141,12 @@ export function CommandPalette({
       onMouseDown={onClose}
     >
       <div
-        className="w-[560px] max-w-[92vw] overflow-hidden border border-[var(--border-hot)] bg-[var(--bg-elevated)]"
+        className="w-[560px] max-w-[92vw] overflow-hidden border border-[var(--rule-strong)] bg-[var(--bg-elevated)]"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.7)", maxHeight: 400 }}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-2">
-          <span className="text-[var(--text-lo)]" aria-hidden>
+        <div className="flex items-center gap-2 border-b border-[var(--rule)] px-3 py-2">
+          <span className="text-[var(--text-dim)]" aria-hidden>
             ⌘
           </span>
           <input
@@ -152,14 +155,14 @@ export function CommandPalette({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Search parts, suppliers, sites, actions…"
-            className="w-full bg-transparent text-[13px] text-[var(--text-hi)] placeholder:text-[var(--text-lo)] focus:outline-none"
+            className="w-full bg-transparent text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-dim)] focus:outline-none"
             spellCheck={false}
             autoComplete="off"
           />
         </div>
         <div ref={listRef} className="max-h-[336px] overflow-auto">
           {results.length === 0 ? (
-            <div className="px-3 py-3 text-[11px] text-[var(--text-lo)]">
+            <div className="px-3 py-3 text-[11px] text-[var(--text-dim)]">
               No matches.
             </div>
           ) : (
@@ -172,7 +175,7 @@ export function CommandPalette({
                 className="flex w-full items-center gap-3 border-l-2 px-3 py-1 text-left"
                 style={{
                   background: i === index ? "var(--bg-panel)" : "transparent",
-                  borderLeftColor: i === index ? "var(--cyan)" : "transparent",
+                  borderLeftColor: i === index ? "var(--interactive)" : "transparent",
                 }}
               >
                 <span
@@ -181,10 +184,10 @@ export function CommandPalette({
                 >
                   {e.kind}
                 </span>
-                <span className="w-[150px] shrink-0 truncate text-[11px] text-[var(--text-hi)]">
+                <span className="w-[150px] shrink-0 truncate text-[11px] text-[var(--text-primary)]">
                   {e.label}
                 </span>
-                <span className="flex-1 truncate text-[11px] text-[var(--text-lo)]">
+                <span className="flex-1 truncate text-[11px] text-[var(--text-dim)]">
                   {e.sub}
                 </span>
               </button>

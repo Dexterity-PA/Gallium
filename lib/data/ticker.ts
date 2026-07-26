@@ -9,23 +9,14 @@ import { BOM } from "@/lib/data/bom";
 // you, and one or two move in your favour. So this list is roughly half FLAT
 // (a level, not a move — no arrow at all), two green, and four red.
 //
-// `dir: "flat"` is authored here but cannot render yet: lib/types.ts types
-// TickerItem.dir as "up" | "down" and components/chrome/Ticker.tsx always
-// draws one of ▲/▼. Both files are outside this module's ownership, so
-// TICKER_ITEMS below coerces flat → "up" on export and the strip stays red
-// until that two-line change lands. The authored intent lives in TICKER_SEED
-// and is what should survive; see TICKER_FLAT_PENDING.
-
-export type TickerDirection = TickerItem["dir"] | "flat";
-
-export interface TickerSeed extends Omit<TickerItem, "dir"> {
-  dir: TickerDirection;
-}
+// TickerItem.dir (lib/types.ts) now includes "flat", so TICKER_ITEMS below is
+// a plain, fully-typed TickerItem[] — components/chrome/Ticker.tsx reads it
+// directly with no coercion layer.
 
 // Lead-time rows read the real BOM rather than repeating its numbers, so the
 // strip and the EXPOSURE table can never disagree. A line whose quote has not
 // moved (delta 0) is flat by construction — the data decides, not the author.
-function leadTimeRow(label: string, mpn: string): TickerSeed {
+function leadTimeRow(label: string, mpn: string): TickerItem {
   const line = BOM.find((b) => b.mpn === mpn);
   if (!line) throw new Error(`ticker: no BOM line for MPN ${mpn}`);
   const d = line.leadTimeDelta;
@@ -37,7 +28,7 @@ function leadTimeRow(label: string, mpn: string): TickerSeed {
   };
 }
 
-const TICKER_SEED: TickerSeed[] = [
+export const TICKER_ITEMS: TickerItem[] = [
   // Standing states, not moves — a level with an arrow on it is a lie.
   { label: "KAOHSIUNG PORT", value: "QUARANTINE ACTIVE", dir: "flat", critical: true },
   { label: "AFFILIATES RULE", value: "T-110D", dir: "flat", critical: true },
@@ -56,37 +47,23 @@ const TICKER_SEED: TickerSeed[] = [
   { label: "SGP TRANSSHIP DWELL", value: "2.6D", delta: "-0.4", dir: "down" },
 ];
 
-/**
- * True while TickerItem.dir cannot express "flat". Remove this, the coercion
- * below, and the `TickerDirection` alias once lib/types.ts accepts "flat" and
- * Ticker.tsx renders no glyph for it.
- */
-export const TICKER_FLAT_PENDING = true;
-
-export const TICKER_ITEMS: TickerItem[] = TICKER_SEED.map(({ dir, ...rest }) => ({
-  ...rest,
-  // flat → "up" (not "down"): a held level is not movement in our favour, and
-  // mislabelling it green would be the more misleading of the two coercions.
-  dir: dir === "flat" ? "up" : dir,
-}));
-
 /** The authored mix, for the handoff and for anything that wants the truth. */
-export const TICKER_DIRECTION_MIX = TICKER_SEED.reduce(
+export const TICKER_DIRECTION_MIX = TICKER_ITEMS.reduce(
   (acc, i) => ({ ...acc, [i.dir]: (acc[i.dir] ?? 0) + 1 }),
-  {} as Record<TickerDirection, number>
+  {} as Record<TickerItem["dir"], number>
 );
 
 // Guard the shape the list is supposed to have: at least half the rows flat,
 // and exactly two favourable. Throws at import if someone repaints the strip
 // red again.
 export const TICKER_MIX_OK = (() => {
-  const flat = TICKER_SEED.filter((i) => i.dir === "flat").length;
-  const green = TICKER_SEED.filter((i) => i.dir === "down").length;
-  if (flat * 2 < TICKER_SEED.length) {
-    throw new Error(`ticker: only ${flat}/${TICKER_SEED.length} rows are flat — expected about half`);
+  const flat = TICKER_ITEMS.filter((i) => i.dir === "flat").length;
+  const green = TICKER_ITEMS.filter((i) => i.dir === "down").length;
+  if (flat * 2 < TICKER_ITEMS.length) {
+    throw new Error(`ticker: only ${flat}/${TICKER_ITEMS.length} rows are flat — expected about half`);
   }
   if (green !== 2) {
     throw new Error(`ticker: expected exactly 2 favourable rows, found ${green}`);
   }
-  return { total: TICKER_SEED.length, flat, green, red: TICKER_SEED.length - flat - green };
+  return { total: TICKER_ITEMS.length, flat, green, red: TICKER_ITEMS.length - flat - green };
 })();

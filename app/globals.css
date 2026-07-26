@@ -43,61 +43,6 @@
   font-display: block;
 }
 
-/* ============================================================
-   LEGACY TOKENS — being retired.
-
-   The four screens (RADAR / EXPOSURE / GRAPH / RESOLVE) still
-   reference these names. They stay defined so those screens keep
-   rendering; each wave that rebuilds a screen migrates it onto
-   styles/tokens.css and deletes what it stopped using.
-
-   Do NOT add to this block. Do NOT reach for these names in new
-   code. styles/tokens.css is the contract.
-
-   Already migrated: --bg-base / --bg-panel / --bg-elevated now
-   come from tokens.css, so every screen inherits the lifted,
-   non-black surfaces without being touched.
-   ============================================================ */
-
-:root {
-  --border: #1e222c;
-  --border-hot: #2a303d;
-
-  --text-hi: #e8eaf0;
-  --text-mid: #8b93a7;
-  /* Raised from #545c70 (3.0:1 on --bg-base) to #6b7488 (4.3:1): the 9px badge
-     and 10px labels must stay legible at 1080p, including after a downscale. */
-  --text-lo: #6b7488;
-
-  --amber: #ffb020;
-  --red: #ff4757;
-  --orange: #ff8c42;
-  --green: #2ed573;
-  --cyan: #00d9ff;
-  --violet: #a78bfa;
-
-  /* Solid graticule/grid stroke color for the radar graph. Consumed as
-     var(--grid-line, var(--text-hi)) at a low strokeOpacity (~0.03), so this
-     stays a SOLID (non-alpha) color — the same hi grid tone as --text-hi. */
-  --grid-line: #e8eaf0;
-}
-
-@theme inline {
-  --color-border: var(--border);
-  --color-border-hot: var(--border-hot);
-
-  --color-hi: var(--text-hi);
-  --color-mid: var(--text-mid);
-  --color-lo: var(--text-lo);
-
-  --color-amber: var(--amber);
-  --color-red: var(--red);
-  --color-orange: var(--orange);
-  --color-green: var(--green);
-  --color-cyan: var(--cyan);
-  --color-violet: var(--violet);
-}
-
 /* ---- base ------------------------------------------------- */
 
 html,

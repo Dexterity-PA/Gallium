@@ -1,8 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import type { Action } from "@/lib/types";
+import type { Action, BomLine } from "@/lib/types";
 import { ACTION_CODE, linesFor } from "@/components/resolve/rollup";
+import {
+  alternatesFor,
+  ERP_BLIND_ALTERNATE_NOTE,
+  type Alternate,
+} from "@/components/exposure/derive";
+
+interface RankedAlternate extends Alternate {
+  forLine: string; // MPN of the covered line this candidate would replace
+}
+
+// Ranked by lines actually recovered (the graph-verified escape verdict),
+// not by availability/posture — a pin-compatible, in-stock alternate that
+// still routes through the same backend recovers nothing and ranks last.
+function rankedAlternates(lines: BomLine[]): RankedAlternate[] {
+  return lines
+    .flatMap((line) =>
+      alternatesFor(line).map((alt) => ({ ...alt, forLine: line.mpn }))
+    )
+    .sort(
+      (a, b) => b.recoveredLines - a.recoveredLines || a.leadTimeWeeks - b.leadTimeWeeks
+    );
+}
 
 // Full-width action row. Not a card: no box, no surface of its own. Rows are
 // separated from each other by a single --rule hairline, and the only thing
@@ -59,6 +81,7 @@ export function ActionCard({
 }) {
   const [open, setOpen] = useState(false);
   const covered = linesFor(action.id);
+  const alternates = action.kind === "SUBSTITUTE" ? rankedAlternates(covered) : [];
 
   return (
     <section
@@ -155,6 +178,49 @@ export function ActionCard({
                 : covered.map((l) => l.mpn).join("  ·  ")}
             </span>
           </div>
+
+          {action.kind === "SUBSTITUTE" ? (
+            <div className="border-t border-rule px-2 py-1.5">
+              <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                <span className="label">
+                  Qualified alternates · ranked by lines recovered
+                </span>
+                <span className="shrink-0 tabular-nums text-label text-focus">
+                  {alternates.filter((a) => a.recoveredLines > 0).length}/
+                  {alternates.length} RECOVER A LINE
+                </span>
+              </div>
+              {alternates.map((alt) => (
+                <div
+                  key={`${alt.forLine}-${alt.mpn}`}
+                  className="flex items-baseline justify-between gap-2 border-b border-rule py-1 text-label"
+                >
+                  <span className="min-w-0 truncate">
+                    <span
+                      style={{ color: alt.verdict === "TRUE_ESCAPE" ? "var(--focus)" : "var(--critical)" }}
+                    >
+                      {alt.verdict === "TRUE_ESCAPE" ? "✓" : "✕"}
+                    </span>{" "}
+                    <span className="text-secondary">{alt.forLine}</span>
+                    <span className="text-dim"> → </span>
+                    <span className="text-primary">{alt.mpn}</span>
+                    {alt.collidingNode ? (
+                      <span className="text-dim"> · via {alt.collidingNode}</span>
+                    ) : null}
+                  </span>
+                  <span
+                    className="tabular-nums shrink-0"
+                    style={{ color: alt.recoveredLines > 0 ? "var(--focus)" : "var(--text-dim)" }}
+                  >
+                    +{alt.recoveredLines} LINE{alt.recoveredLines === 1 ? "" : "S"}
+                  </span>
+                </div>
+              ))}
+              <div className="mt-1.5 text-label leading-relaxed text-dim">
+                {ERP_BLIND_ALTERNATE_NOTE}
+              </div>
+            </div>
+          ) : null}
 
           {action.warning ? (
             <div className="px-2 pb-1.5">

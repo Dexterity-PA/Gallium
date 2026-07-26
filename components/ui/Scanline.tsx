@@ -1,6 +1,6 @@
 "use client";
 
-// The app's signature motion (DESIGN.md §5). A single 1px --amber line sweeps
+// The app's signature motion (DESIGN.md §5). A single 1px --focus line sweeps
 // top→bottom across a panel at 12% opacity over 600ms, then disappears.
 // Render inside a `position: relative` container; bump `trigger` to replay.
 export function Scanline({ trigger }: { trigger: number }) {

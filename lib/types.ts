@@ -124,7 +124,7 @@ export interface FeedEvent {
 
 // ---- ticker (DATA.md §7) -----------------------------------
 
-export type TickerDir = "up" | "down";
+export type TickerDir = "up" | "down" | "flat";
 
 export interface TickerItem {
   label: string;

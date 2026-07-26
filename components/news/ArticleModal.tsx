@@ -29,7 +29,7 @@ function MatchedLines({ lines }: { lines: BomLine[] }) {
 
   if (lines.length === 0) {
     return (
-      <div className="text-[9px] tracking-[0.06em] text-[var(--text-lo)]">
+      <div className="text-[9px] tracking-[0.06em] text-[var(--text-dim)]">
         NO BOM LINES MATCHED
       </div>
     );
@@ -41,16 +41,16 @@ function MatchedLines({ lines }: { lines: BomLine[] }) {
         {visible.map((b) => (
           <span
             key={b.id}
-            className="inline-flex items-center gap-1.5 border border-[var(--border)] bg-[var(--bg-panel)] px-1.5 py-0.5 text-[10px] leading-none tabular-nums"
+            className="inline-flex items-center gap-1.5 border border-[var(--rule)] bg-[var(--bg-panel)] px-1.5 py-0.5 text-[10px] leading-none tabular-nums"
           >
-            <span style={{ color: b.provenance === "MODELED" ? "var(--violet)" : statusColor(b.status) }}>
+            <span style={{ color: b.provenance === "MODELED" ? "var(--modeled)" : statusColor(b.status) }}>
               {statusGlyph(b.status)}
             </span>
-            <span className="text-[var(--text-mid)]">{b.mpn}</span>
+            <span className="text-[var(--text-secondary)]">{b.mpn}</span>
             <button
               type="button"
               onClick={() => setDismissed((d) => new Set(d).add(b.id))}
-              className="ml-0.5 text-[var(--text-lo)] transition-colors hover:text-[var(--red)]"
+              className="ml-0.5 text-[var(--text-dim)] transition-colors hover:text-[var(--critical)]"
               aria-label={`Dismiss match ${b.mpn}`}
               title="Dismiss this match"
             >
@@ -60,12 +60,12 @@ function MatchedLines({ lines }: { lines: BomLine[] }) {
         ))}
       </div>
       {dismissedCount > 0 ? (
-        <div className="mt-1.5 flex items-center gap-2 text-[9px] tracking-[0.06em] text-[var(--text-lo)]">
+        <div className="mt-1.5 flex items-center gap-2 text-[9px] tracking-[0.06em] text-[var(--text-dim)]">
           <span>{dismissedCount} MATCH{dismissedCount === 1 ? "" : "ES"} DISMISSED</span>
           <button
             type="button"
             onClick={() => setDismissed(new Set())}
-            className="text-[var(--cyan)] transition-colors hover:text-[var(--amber)]"
+            className="text-[var(--interactive)] transition-colors hover:text-[var(--focus)]"
           >
             RESTORE
           </button>
@@ -87,19 +87,19 @@ function ArticleBody({ article }: { article: Article }) {
   return (
     <>
       {/* unmissable fictional marker — separate from any app-wide scenario disclaimer */}
-      <div className="flex items-center gap-2 border border-[var(--red)] bg-[color-mix(in_srgb,var(--red)_12%,var(--bg-elevated))] px-2 py-1">
-        <span className="text-[10px] font-medium tracking-[0.10em] text-[var(--red)]">
+      <div className="flex items-center gap-2 border border-[var(--critical)] bg-[color-mix(in_srgb,var(--critical)_12%,var(--bg-elevated))] px-2 py-1">
+        <span className="text-[10px] font-medium tracking-[0.10em] text-[var(--critical)]">
           ⚠ FICTIONAL ARTICLE
         </span>
-        <span className="text-[9px] tracking-[0.06em] text-[var(--text-mid)]">
+        <span className="text-[9px] tracking-[0.06em] text-[var(--text-secondary)]">
           Generated for a YC application demo — no real outlet, event, or company statement.
         </span>
       </div>
 
       {/* header */}
-      <div className="mt-3 border-b border-[var(--border)] pb-2">
+      <div className="mt-3 border-b border-[var(--rule)] pb-2">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-[13px] font-medium leading-snug text-[var(--text-hi)]">
+          <h2 className="text-[13px] font-medium leading-snug text-[var(--text-primary)]">
             {article.headline}
           </h2>
           {cls ? (
@@ -111,15 +111,15 @@ function ArticleBody({ article }: { article: Article }) {
             </span>
           ) : null}
         </div>
-        <div className="mt-1 flex items-center justify-between text-[10px] tracking-[0.06em] text-[var(--text-lo)]">
+        <div className="mt-1 flex items-center justify-between text-[10px] tracking-[0.06em] text-[var(--text-dim)]">
           <span>{article.outlet}</span>
           <span className="tabular-nums">{fmtTime(article.publishedAt)}</span>
         </div>
-        <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-mid)]">{article.dek}</p>
+        <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-secondary)]">{article.dek}</p>
       </div>
 
       {/* body */}
-      <div className="mt-3 max-w-[70ch] text-[11px] leading-relaxed text-[var(--text-mid)]">
+      <div className="mt-3 max-w-[70ch] text-[11px] leading-relaxed text-[var(--text-secondary)]">
         {(article.body ?? "").split("\n\n").map((para, i) => (
           <p key={i} className={i > 0 ? "mt-3" : undefined}>
             {para}
@@ -129,28 +129,28 @@ function ArticleBody({ article }: { article: Article }) {
 
       {/* classification */}
       {cls ? (
-        <div className="mt-4 border-t border-[var(--border-hot)] pt-2">
+        <div className="mt-4 border-t border-[var(--rule-strong)] pt-2">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-lo)]">
+            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-dim)]">
               Classification
             </span>
             <span
               className="text-[9px] tabular-nums tracking-[0.08em]"
-              style={{ color: isModeled ? "var(--violet)" : "var(--text-mid)" }}
+              style={{ color: isModeled ? "var(--modeled)" : "var(--text-secondary)" }}
             >
               {isModeled ? "■ MODELED" : "● OBSERVED"} · CONF {cls.confidence}%
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-[var(--text-mid)]">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-[var(--text-secondary)]">
             <span>
-              <span className="text-[var(--text-lo)]">AFFECTED NODE </span>
+              <span className="text-[var(--text-dim)]">AFFECTED NODE </span>
               {cls.affectedNodeId ? (
-                <span className="text-[var(--text-hi)]">
+                <span className="text-[var(--text-primary)]">
                   {NODE_LABELS.get(cls.affectedNodeId) ?? cls.affectedNodeId}
                 </span>
               ) : (
-                <span className="text-[var(--text-lo)]">— none (macro signal)</span>
+                <span className="text-[var(--text-dim)]">— none (macro signal)</span>
               )}
             </span>
           </div>
@@ -159,7 +159,7 @@ function ArticleBody({ article }: { article: Article }) {
             {cls.componentCategories.map((c) => (
               <span
                 key={c}
-                className="border border-[var(--border)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.06em] text-[var(--text-mid)]"
+                className="border border-[var(--rule)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.06em] text-[var(--text-secondary)]"
               >
                 {c}
               </span>
@@ -167,10 +167,10 @@ function ArticleBody({ article }: { article: Article }) {
           </div>
 
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-lo)]">
+            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-dim)]">
               Matched BOM Lines
             </span>
-            <span className="text-[9px] tabular-nums text-[var(--text-lo)]">
+            <span className="text-[9px] tabular-nums text-[var(--text-dim)]">
               {matchedLines.length} COMPUTED
             </span>
           </div>
@@ -179,7 +179,7 @@ function ArticleBody({ article }: { article: Article }) {
           </div>
 
           {recon && !recon.agree ? (
-            <div className="mt-2 text-[9px] leading-relaxed tracking-[0.04em] text-[var(--orange)]">
+            <div className="mt-2 text-[9px] leading-relaxed tracking-[0.04em] text-[var(--warn)]">
               ⚠ Computed match ({recon.computed.length} lines) differs from the article&rsquo;s
               hand-authored relatedBomIds ({recon.authored.length} lines) — shown above is the
               computed match, not the curator&rsquo;s note.
@@ -189,8 +189,8 @@ function ArticleBody({ article }: { article: Article }) {
       ) : null}
 
       {/* sources */}
-      <div className="mt-4 border-t border-[var(--border)] pt-2">
-        <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-lo)]">
+      <div className="mt-4 border-t border-[var(--rule)] pt-2">
+        <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-dim)]">
           Sources · {sources.length}
         </span>
         <div className="mt-1.5 flex flex-col gap-1">
@@ -198,12 +198,12 @@ function ArticleBody({ article }: { article: Article }) {
             <div key={s.id} className="flex items-baseline justify-between gap-3 text-[10px]">
               <span
                 className="overflow-hidden text-ellipsis whitespace-nowrap"
-                style={{ color: s.provenance === "MODELED" ? "var(--violet)" : "var(--text-mid)" }}
+                style={{ color: s.provenance === "MODELED" ? "var(--modeled)" : "var(--text-secondary)" }}
                 title={s.title}
               >
                 {s.title}
               </span>
-              <span className="shrink-0 text-[9px] tracking-[0.06em] text-[var(--text-lo)]">
+              <span className="shrink-0 text-[9px] tracking-[0.06em] text-[var(--text-dim)]">
                 {s.publisher}
               </span>
             </div>
@@ -241,17 +241,17 @@ export function ArticleModal({ article, onClose }: { article: Article | null; on
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.16, ease: "easeOut" }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="flex max-h-[88vh] w-[620px] max-w-[94vw] flex-col border border-[var(--border-hot)] bg-[var(--bg-elevated)]"
+            className="flex max-h-[88vh] w-[620px] max-w-[94vw] flex-col border border-[var(--rule-strong)] bg-[var(--bg-elevated)]"
             style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.7)" }}
           >
-            <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-2">
-              <span className="text-[10px] font-medium uppercase tracking-[0.10em] text-[var(--text-lo)]">
+            <div className="flex shrink-0 items-center justify-between border-b border-[var(--rule)] px-4 py-2">
+              <span className="text-[10px] font-medium uppercase tracking-[0.10em] text-[var(--text-dim)]">
                 ARTICLE · {article.id}
               </span>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-[var(--text-lo)] transition-colors hover:text-[var(--amber)]"
+                className="text-[var(--text-dim)] transition-colors hover:text-[var(--focus)]"
                 aria-label="Close"
               >
                 ✕

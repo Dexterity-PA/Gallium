@@ -45,3 +45,21 @@ next-env.d.ts
 /*.png
 REVIEW-*.md
 .playwright-mcp/
+
+# verification output: screenshots and audit dumps are never committed.
+# Root-only globs again, so anything under public/ stays tracked.
+/*.jpg
+/*.jpeg
+/*.webp
+/screenshots/
+/shots/
+/scratchpad/
+/.scratch/
+/audit/
+/test-results/
+/playwright-report/
+
+# local agent + editor state, not source
+.claude/settings.local.json
+.idea/
+.vscode/

@@ -204,6 +204,77 @@ export const SOURCES: SourceDoc[] = [
     excerpt:
       "Not a source document — this is Gallium's own inference. Ultimate-parent attribution is derived by compounding disclosed equity stakes across the registry chain; no single filing names the ultimate parent directly. Confidence reflects chain depth, filing recency, and stake concentration.",
   },
+
+  // ---- HINDSIGHT screen (Agent, this pass) ------------------
+  // Scenario-specific documents for the four lookback events. Each event
+  // gets its own count and its own evidence rather than reusing the
+  // generic market-data corpus above, so the source count varies row to
+  // row on purpose (see HINDSIGHT_HONESTY_OK in lib/data/hindsight.ts).
+  // HND-04 gets exactly one thin document because that thinness is the
+  // reason the row is a miss, not decoration.
+  {
+    id: "SRC-HND01-SPOT",
+    kind: "MARKET_DATA",
+    title: "BT laminate spot price divergence tracker, Guangdong packaging cluster",
+    publisher: "Advanced-packaging materials market data",
+    provenance: "OBSERVED",
+    retrievedAt: "2026-02-10T18:00:00Z",
+    url: "https://example.stub/market/substrate-guangdong",
+    excerpt:
+      "Spot pricing for BT laminate sourced through the Guangdong packaging cluster has diverged from the twelve-month trailing baseline for six consecutive sessions, a pattern that has preceded allocation cuts in the prior two cycles.",
+  },
+  {
+    id: "SRC-HND01-ALLOC",
+    kind: "PROCUREMENT",
+    title: "Vendor lead-time reforecast, isolation component category",
+    publisher: "Meridian Drive Systems (first-party)",
+    provenance: "OBSERVED",
+    retrievedAt: "2026-03-06T09:00:00Z",
+    excerpt:
+      "Quarterly reforecast from the vendor master confirms an allocation cut across the isolation component category originating in the Guangdong packaging cluster. Prior quarter's forecast carried no indication of the change.",
+  },
+  {
+    id: "SRC-HND02-PORTAL",
+    kind: "DISTRIBUTOR",
+    title: "Distributor portal allocation log, reinforced-isolation gate driver family",
+    publisher: "Authorized distribution channel",
+    provenance: "OBSERVED",
+    retrievedAt: "2026-04-17T09:00:00Z",
+    url: "https://example.stub/distributor/portal-log",
+    excerpt:
+      "Allocation log shows reinforced-isolation gate-driver inventory rerouted to priority-tier accounts effective the prior allocation cycle. Standard-tier accounts, including Meridian's, moved to extended lead time.",
+  },
+  {
+    id: "SRC-HND02-REQUOTE",
+    kind: "PROCUREMENT",
+    title: "Q2 requote cycle memo, isolation gate driver category",
+    publisher: "Meridian Drive Systems (first-party)",
+    provenance: "OBSERVED",
+    retrievedAt: "2026-04-02T14:00:00Z",
+    excerpt:
+      "Internal procurement memo notes the standard Q2 requote cycle had not yet reflected any allocation change for the gate-driver category at time of writing.",
+  },
+  {
+    id: "SRC-HND03-SAILING",
+    kind: "CARRIER_ADVISORY",
+    title: "Sailing schedule bulletin, Taiwan-origin test house lanes",
+    publisher: "Ocean carrier advisories (composite)",
+    provenance: "OBSERVED",
+    retrievedAt: "2026-05-22T15:00:00Z",
+    url: "https://example.stub/carriers/sailing-schedule",
+    excerpt:
+      "Bulletin flags reduced schedule reliability on lanes serving the Taiwan-origin backend test house ahead of the next scheduled sailing, with a narrow window to rebook before the slot closes.",
+  },
+  {
+    id: "SRC-HND04-INFER-THIN",
+    kind: "NETWORK_INFERENCE",
+    title: "Network inference, tier-2 rectifier parent stake crossing, single thread",
+    publisher: "Gallium modeling",
+    provenance: "MODELED",
+    retrievedAt: "2026-06-19T08:00:00Z",
+    excerpt:
+      "Not a source document, this is Gallium's own inference. The registry filing behind this parent-stake crossing was corroborated by no independent filing or import record at time of assessment, which is why confidence stayed below the escalation threshold. Meridian's own compliance cross-check confirmed the crossing independently five days earlier.",
+  },
 ];
 
 const BY_ID = new Map(SOURCES.map((s) => [s.id, s]));

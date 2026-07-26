@@ -411,8 +411,8 @@ export function WorldMap({ focus }: { focus?: MapFocusRequest | null } = {}) {
             <path
               d={gratD}
               fill="none"
-              stroke="var(--grid-line, var(--text-hi))"
-              strokeOpacity={0.012}
+              stroke="var(--rule)"
+              strokeOpacity={0.17}
               strokeWidth={1}
               shapeRendering="crispEdges"
               vectorEffect="non-scaling-stroke"

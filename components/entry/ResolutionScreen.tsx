@@ -29,11 +29,12 @@ type LogTag = "PARSED" | "MATCHED" | "UNRESOLVED" | "EXPOSED" | "CLEAR";
 function tagColor(tag: LogTag): string {
   switch (tag) {
     case "UNRESOLVED":
-      return "var(--red)";
     case "EXPOSED":
-      return "var(--amber)";
+      // Both are the real BOM `status` field (see uploadResolution.ts) —
+      // same axis StatusGlyph resolves to --critical elsewhere in the app.
+      return "var(--critical)";
     default:
-      return "var(--text-mid)";
+      return "var(--text-secondary)";
   }
 }
 
@@ -114,33 +115,33 @@ export function ResolutionScreen({ summary, onComplete }: ResolutionScreenProps)
   const progressPct = Math.round((elapsed / TOTAL_MS) * 100);
 
   return (
-    <div className="substrate relative flex h-full w-full flex-col items-center justify-center gap-6 bg-[var(--bg-base)] px-6">
-      <div className="flex w-full max-w-[720px] flex-col gap-6">
+    <div className="substrate relative flex h-full w-full flex-col items-center justify-center gap-4 bg-[var(--bg-base)] px-4">
+      <div className="flex w-full max-w-[720px] flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between text-[10px] tracking-[0.14em] text-[var(--text-lo)]">
+          <div className="flex items-center justify-between text-[10px] tracking-[0.14em] text-[var(--text-dim)]">
             <span>
               {summary.source === "sample" ? "SAMPLE BOM — MD-7200" : (summary.fileName ?? "UPLOADED FILE")}
             </span>
             <span className="tabular-nums">{progressPct}%</span>
           </div>
-          <div className="h-[3px] w-full bg-[var(--border)]">
+          <div className="h-1 w-full bg-[var(--rule)]">
             <div
-              className="h-full bg-[var(--amber)] transition-[width] duration-150 ease-linear"
+              className="h-full bg-[var(--focus)] transition-[width] duration-150 ease-linear"
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.1em] text-[var(--text-hi)]">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.1em] text-[var(--text-primary)]">
             {!done ? (
-              <span className="anim-cursor text-[var(--amber)]">▮</span>
+              <span className="anim-cursor text-[var(--focus)]">▮</span>
             ) : (
-              <span className="text-[var(--green)]">●</span>
+              <span className="text-[var(--ok)]">●</span>
             )}
             {stageLabel}
           </div>
         </div>
 
         <Panel label="Resolution" noPad>
-          <div className="grid grid-cols-4 divide-x divide-[var(--border)]">
+          <div className="grid grid-cols-4 divide-x divide-[var(--rule)]">
             <div className="p-3">
               <Metric label="Lines Parsed" value={linesParsed} sub={`of ${summary.totalRows}`} size="lg" />
             </div>
@@ -148,10 +149,10 @@ export function ResolutionScreen({ summary, onComplete }: ResolutionScreenProps)
               <Metric label="Matched" value={matchedSoFar} size="lg" />
             </div>
             <div className="p-3">
-              <Metric label="Unresolved" value={unresolvedSoFar} tone="var(--red)" size="lg" />
+              <Metric label="Unresolved" value={unresolvedSoFar} tone="var(--critical)" size="lg" />
             </div>
             <div className="p-3">
-              <Metric label="Exposed" value={exposedSoFar} tone="var(--amber)" size="lg" />
+              <Metric label="Exposed" value={exposedSoFar} tone="var(--critical)" size="lg" />
             </div>
           </div>
         </Panel>
@@ -162,7 +163,7 @@ export function ResolutionScreen({ summary, onComplete }: ResolutionScreenProps)
           className="h-[220px]"
           bodyClassName="overflow-hidden"
         >
-          <div className="flex flex-col gap-[3px] font-mono text-[10px]">
+          <div className="flex flex-col gap-1 font-mono text-[10px]">
             {log.map((row, i) => (
               <div key={`${row.mpn}-${i}`} className="flex items-center gap-2">
                 <span
@@ -171,22 +172,22 @@ export function ResolutionScreen({ summary, onComplete }: ResolutionScreenProps)
                 >
                   {row.tag}
                 </span>
-                <span className="w-[140px] shrink-0 truncate text-[var(--text-hi)]">{row.mpn}</span>
-                <span className="truncate text-[var(--text-lo)]">{row.description}</span>
+                <span className="w-[140px] shrink-0 truncate text-[var(--text-primary)]">{row.mpn}</span>
+                <span className="truncate text-[var(--text-dim)]">{row.description}</span>
               </div>
             ))}
           </div>
         </Panel>
 
         {done ? (
-          <div className="text-center text-[10px] tracking-[0.08em] text-[var(--text-lo)]">
+          <div className="text-center text-[10px] tracking-[0.08em] text-[var(--text-dim)]">
             {summary.unresolved} of {summary.totalRows} lines had no network match — entering
             dashboard…
           </div>
         ) : null}
       </div>
 
-      <div className="absolute bottom-4 text-[9px] tracking-[0.06em] text-[var(--text-lo)]">
+      <div className="absolute bottom-4 text-[9px] tracking-[0.06em] text-[var(--text-dim)]">
         FICTIONAL SCENARIO — REPRESENTATIVE DATA
       </div>
     </div>

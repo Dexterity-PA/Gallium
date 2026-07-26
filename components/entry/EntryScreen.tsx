@@ -73,18 +73,18 @@ export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
   }, []);
 
   return (
-    <div className="substrate relative flex h-full w-full flex-col items-center justify-center bg-[var(--bg-base)] px-6">
+    <div className="substrate relative flex h-full w-full flex-col items-center justify-center bg-[var(--bg-base)] px-4">
       <Scanline trigger={1} />
 
-      <div className="flex w-full max-w-[560px] flex-col items-center gap-8">
+      <div className="flex w-full max-w-[560px] flex-col items-center gap-4">
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="text-[10px] tracking-[0.3em] text-[var(--text-lo)]">
+          <div className="text-[10px] tracking-[0.3em] text-[var(--text-dim)]">
             DEMO MODE — SAMPLE DATA
           </div>
-          <div className="text-[42px] font-bold tracking-[0.1em] text-[var(--amber)]">
+          <div className="text-[42px] font-bold tracking-[0.1em] text-[var(--text-primary)]">
             GALLIUM
           </div>
-          <div className="max-w-[420px] text-[12px] leading-relaxed text-[var(--text-mid)]">
+          <div className="max-w-[420px] text-[12px] leading-relaxed text-[var(--text-secondary)]">
             Chip supply chain shocks, caught before your ERP notices them.
           </div>
         </div>
@@ -106,10 +106,10 @@ export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
             }}
             onDragLeave={() => setDragOver(false)}
             onDrop={onDrop}
-            className={`flex cursor-pointer flex-col items-center gap-3 border-2 border-dashed px-6 py-10 text-center transition-colors ${
+            className={`flex cursor-pointer flex-col items-center gap-3 border border-dashed px-4 py-4 text-center transition-colors ${
               dragOver
-                ? "border-[var(--amber)] bg-[var(--bg-elevated)]"
-                : "border-[var(--border-hot)]"
+                ? "border-[var(--focus)] bg-[var(--bg-elevated)]"
+                : "border-[var(--rule-strong)]"
             }`}
           >
             <input
@@ -120,31 +120,31 @@ export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
               onChange={onPick}
               aria-label="Upload BOM CSV"
             />
-            <div className="text-[24px] text-[var(--text-lo)]" aria-hidden>
+            <div className="text-[24px] text-[var(--text-dim)]" aria-hidden>
               ⇪
             </div>
-            <div className="text-[11px] uppercase tracking-[0.1em] text-[var(--text-hi)]">
+            <div className="text-[11px] uppercase tracking-[0.1em] text-[var(--text-primary)]">
               Drop a BOM CSV, or click to browse
             </div>
-            <div className="text-[10px] text-[var(--text-lo)]">Columns: mpn, description</div>
+            <div className="text-[10px] text-[var(--text-dim)]">Columns: mpn, description</div>
           </div>
           {error ? (
-            <div className="border-t border-[var(--border)] px-4 py-2 text-[10px] text-[var(--red)]">
+            <div className="border-t border-[var(--rule)] px-4 py-2 text-[10px] text-[var(--critical)]">
               {error}
             </div>
           ) : null}
         </Panel>
 
         <div className="flex w-full items-center gap-3">
-          <div className="h-px flex-1 bg-[var(--border)]" />
-          <span className="text-[10px] tracking-[0.1em] text-[var(--text-lo)]">OR</span>
-          <div className="h-px flex-1 bg-[var(--border)]" />
+          <div className="h-px flex-1 bg-[var(--rule)]" />
+          <span className="text-[10px] tracking-[0.1em] text-[var(--text-dim)]">OR</span>
+          <div className="h-px flex-1 bg-[var(--rule)]" />
         </div>
 
         <button
           type="button"
           onClick={onUseSample}
-          className="flex h-[34px] w-full items-center justify-center gap-2 border border-[var(--amber)] text-[11px] uppercase tracking-[0.12em] text-[var(--amber)] transition-colors hover:bg-[var(--amber)] hover:text-[var(--bg-base)]"
+          className="flex h-[34px] w-full items-center justify-center gap-2 border border-[var(--focus)] text-[11px] uppercase tracking-[0.12em] text-[var(--focus)] transition-colors hover:bg-[var(--focus)] hover:text-[var(--bg-base)]"
         >
           Use sample BOM — MD-7200
         </button>
@@ -152,13 +152,13 @@ export function EntryScreen({ onUseSample, onUpload }: EntryScreenProps) {
         <button
           type="button"
           onClick={downloadTemplate}
-          className="text-[10px] tracking-[0.06em] text-[var(--text-lo)] underline decoration-[var(--border-hot)] underline-offset-4 transition-colors hover:text-[var(--text-mid)]"
+          className="text-[10px] tracking-[0.06em] text-[var(--text-dim)] underline decoration-[var(--rule-strong)] underline-offset-4 transition-colors hover:text-[var(--text-secondary)]"
         >
           Download CSV template
         </button>
       </div>
 
-      <div className="absolute bottom-4 text-[9px] tracking-[0.06em] text-[var(--text-lo)]">
+      <div className="absolute bottom-4 text-[9px] tracking-[0.06em] text-[var(--text-dim)]">
         FICTIONAL SCENARIO — REPRESENTATIVE DATA
       </div>
     </div>

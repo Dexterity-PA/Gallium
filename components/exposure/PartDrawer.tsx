@@ -9,8 +9,17 @@ import { SourcePanel } from "@/components/shared/SourcePanel";
 import {
   alternatesFor,
   leadTimeHistory,
+  ERP_BLIND_ALTERNATE_NOTE,
   type Alternate,
+  type AlternateVerdict,
 } from "./derive";
+
+const VERDICT_LABEL: Record<AlternateVerdict, string> = {
+  TRUE_ESCAPE: "true escape",
+  SHARED_BACKEND: "shared backend",
+  SHARED_SUBSTRATE: "shared substrate",
+  SHARED_WAFER_FAB: "shared wafer fab",
+};
 
 function Row({ label, value, tone = "var(--text-primary)" }: { label: string; value: React.ReactNode; tone?: string }) {
   return (
@@ -179,15 +188,19 @@ function AlternateRow({ alt }: { alt: Alternate }) {
           {alt.source} · {alt.pinCompatible ? "PIN-COMPAT" : "FOOTPRINT Δ"} ·{" "}
           <span className="tabular-nums">REQUAL {alt.requalWeeks}W</span>
         </span>
-        {alt.betterThanPart ? (
-          <span
-            className="shrink-0 uppercase"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            ▾ better posture
-          </span>
-        ) : null}
+        <span
+          className="shrink-0 uppercase"
+          style={{ color: alt.verdict === "TRUE_ESCAPE" ? "var(--focus)" : "var(--critical)" }}
+        >
+          {alt.verdict === "TRUE_ESCAPE" ? "✓" : "✕"} {VERDICT_LABEL[alt.verdict]}
+        </span>
       </div>
+      {alt.collidingNode ? (
+        <div className="mt-1 text-label text-dim">
+          via <span className="text-secondary">{alt.collidingNode}</span> — recovers{" "}
+          {alt.recoveredLines} line{alt.recoveredLines === 1 ? "" : "s"}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -207,9 +220,13 @@ function Alternates({ line }: { line: BomLine }) {
       {alts.map((a) => (
         <AlternateRow key={a.mpn} alt={a} />
       ))}
-      <div className="mt-2 text-label leading-relaxed text-dim">
-        Candidate substitutes — not on-hand inventory. Postures screened on the
-        same axis as the line; substitution requires requalification.
+      <div className="mt-2 space-y-1 text-label leading-relaxed text-dim">
+        <p>
+          Candidate substitutes — not on-hand inventory. Verdict is the
+          candidate&apos;s own supply path checked against the affected radius;
+          substitution requires requalification.
+        </p>
+        <p>{ERP_BLIND_ALTERNATE_NOTE}</p>
       </div>
     </div>
   );

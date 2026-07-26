@@ -5,7 +5,7 @@
 // SUPPLIER_SITE / MFR_TO_SUPPLIER maps are already materialized as real edges,
 // so walking GRAPH.edges recovers the same chains without reaching into lib
 // internals. If lib later exported SUPPLIER_SITE we could label hops with the
-// exact stage ("primary" vs "zone") — see the return notes.
+// exact stage ("primary" vs "zone"). See the return notes.
 
 import { GRAPH } from "@/lib/data/graph";
 import type { GraphNode, GraphEdge, Provenance, Status } from "@/lib/types";
@@ -61,7 +61,7 @@ export function connectedEdges(nodeId: string): ConnectedEdge[] {
 // the walk UP toward Meridian (ring-1 at each step) plus the walk DOWN toward a
 // site (ring+1). At each step we follow the worst-case real edge (most exposed
 // neighbor, then OBSERVED over MODELED, then id) so the path traces the
-// contamination story this screen is about — every hop is a real GRAPH edge.
+// contamination story this screen is about: every hop is a real GRAPH edge.
 
 function neighborAtRing(
   fromId: string,
@@ -147,7 +147,7 @@ export function supplyPath(nodeId: string): PathStep[] {
 }
 
 // ---- graph-wide tallies (Job 2: the stats block) -----------------
-// Derived by reduction over GRAPH — never literals.
+// Derived by reduction over GRAPH, never literals.
 export interface GraphTally {
   nodeTotal: number;
   nodesByStatus: Record<Status, number>;

@@ -16,10 +16,14 @@ interface NavItem {
 }
 
 const ITEMS: NavItem[] = [
+  // PRT sits above RDR because it is where the app lands after a BOM is
+  // ingested: the product line first, then the event that hit one of them.
+  { href: "/portfolio", code: "PRT", label: "PORTFOLIO" },
   { href: "/radar", code: "RDR", label: "RADAR" },
   { href: "/exposure", code: "EXP", label: "EXPOSURE" },
   { href: "/graph", code: "GRF", label: "GRAPH" },
   { href: "/resolve", code: "RSV", label: "RESOLVE" },
+  { href: "/hindsight", code: "HND", label: "HINDSIGHT" },
 ];
 
 export function NavRail() {

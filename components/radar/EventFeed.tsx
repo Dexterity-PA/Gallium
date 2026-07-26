@@ -258,7 +258,7 @@ function Row({
           >
             <span>PROVENANCE</span>
             <span className="tabular-nums text-secondary">
-              SRC {src} OUTLETS · CONF {conf}%
+              SRC {src} OUTLET{src === 1 ? "" : "S"} · CONF {conf}%
             </span>
           </button>
 
@@ -308,7 +308,7 @@ function Row({
           }}
           className="label mt-1 block text-left transition-opacity hover:opacity-70"
         >
-          SRC: {src} outlets · CONF {conf}%
+          SRC: {src} outlet{src === 1 ? "" : "s"} · CONF {conf}%
           {el.kind === "none" ? " · MONITORING" : ` · ${el.lines.length} LN`}
         </button>
       )}

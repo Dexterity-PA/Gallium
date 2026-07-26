@@ -2,10 +2,10 @@
 
 import { useMemo } from "react";
 import { TICKER_ITEMS } from "@/lib/data/ticker";
+import type { TickerItem } from "@/lib/types";
 import { useDemoClock } from "@/lib/hooks/useDemoClock";
 import { mulberry32 } from "@/lib/rng";
 import { DEMO_SEED } from "@/lib/demo";
-import type { TickerItem } from "@/lib/types";
 
 // Small seeded random walk on the numeric part of a value, preserving unit
 // text and decimal precision so the ticker "breathes" without layout jitter.
@@ -24,19 +24,24 @@ function walk(value: string, seed: number): string {
 function Item({ item, i, tick }: { item: TickerItem; i: number; tick: number }) {
   const value = item.critical ? item.value : walk(item.value, DEMO_SEED ^ (i * 2654435761) ^ tick);
   const up = item.dir === "up";
+  const flat = item.dir === "flat";
   // Two semantics only, and they are the two the ticker is about
   // (tokens.css RULE 4): --critical for a move against us, --ok for one
-  // in our favour.
-  const color = item.critical || up ? "var(--critical)" : "var(--ok)";
+  // in our favour. A flat row is neither — it gets the plain secondary
+  // text colour and no arrow (RULE 1: no fourth text colour, no semantic
+  // one either, for a level that hasn't moved).
+  const color = flat ? "var(--text-secondary)" : item.critical || up ? "var(--critical)" : "var(--ok)";
   return (
     <span className="inline-flex items-center gap-1 px-4">
       <span className="label">{item.label}</span>
       <span className="tabular-nums" style={{ color }}>
         {value}
       </span>
-      <span aria-hidden style={{ color }}>
-        {up ? "▲" : "▼"}
-      </span>
+      {flat ? null : (
+        <span aria-hidden style={{ color }}>
+          {up ? "▲" : "▼"}
+        </span>
+      )}
       {item.delta ? (
         <span className="tabular-nums" style={{ color }}>
           {item.delta}

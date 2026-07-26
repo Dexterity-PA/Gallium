@@ -16,6 +16,12 @@ import { SAMPLE_UPLOAD_ROWS } from "@/lib/data/sampleUpload";
 // been resolved and the dashboard is entered.
 type Stage = { kind: "entry" } | { kind: "resolving"; summary: ResolutionSummary };
 
+// Where the app lands once a BOM is ingested. PORTFOLIO, not RADAR: the story
+// starts with the customer's own product line, and the event is what happens
+// to one of them. Named once so the post-ingest push and the already-loaded
+// replace below cannot drift apart.
+const LANDING_ROUTE = "/portfolio";
+
 export default function Home() {
   const router = useRouter();
   const { loaded, hydrated, markLoaded } = useDemoState();
@@ -24,7 +30,7 @@ export default function Home() {
   // Revisiting "/" (e.g. browser back) once a BOM is already loaded — the
   // dashboard is the real landing state at that point.
   useEffect(() => {
-    if (hydrated && loaded) router.replace("/radar");
+    if (hydrated && loaded) router.replace(LANDING_ROUTE);
   }, [hydrated, loaded, router]);
 
   const startResolution = useCallback(
@@ -49,12 +55,12 @@ export default function Home() {
   const handleComplete = useCallback(
     (summary: ResolutionSummary) => {
       markLoaded(summary);
-      router.push("/radar");
+      router.push(LANDING_ROUTE);
     },
     [markLoaded, router]
   );
 
-  if (hydrated && loaded) return null; // redirecting to /radar
+  if (hydrated && loaded) return null; // redirecting to LANDING_ROUTE
 
   if (stage.kind === "resolving") {
     return <ResolutionScreen summary={stage.summary} onComplete={handleComplete} />;
