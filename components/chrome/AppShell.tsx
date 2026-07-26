@@ -10,6 +10,12 @@ import { useDemoState } from "@/lib/hooks/useDemoState";
 import { StatusBar } from "@/components/chrome/StatusBar";
 import { NavRail } from "@/components/chrome/NavRail";
 import { CommandPalette } from "@/components/chrome/CommandPalette";
+// Module-load scenario invariants (lib/derive/guards.ts): imported from the
+// shell so every screen, and every build, evaluates them. The import is the
+// guard; the value is only re-exported to keep the import un-elidable.
+import { SCENARIO_GUARDS_OK } from "@/lib/derive/guards";
+
+export const GUARDS = SCENARIO_GUARDS_OK;
 
 // The fixed instrument panel (DESIGN.md §4). 100vh, no page scroll; the two
 // chrome bands never scroll away. 1px hairlines separate every region.
