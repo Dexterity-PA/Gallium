@@ -1,12 +1,14 @@
 import type { BomLine } from "@/lib/types";
-import { daysToHalt, type DaysToHaltBreakdown } from "@/lib/derive/halt";
+import {
+  scenarioExposedLines as scenarioExposedLinesImpl,
+  scenarioHalt as scenarioHaltImpl,
+  type ScenarioHaltBreakdown,
+} from "@/lib/derive/scenario";
 import { BOM } from "@/lib/data/bom";
 import { CUSTOMER } from "@/lib/data/customer";
-import { GRAPH_ADJACENCY } from "@/lib/data/graph";
 import {
   type ScenarioControlState,
-  type ContainmentSeverity,
-  isDefaultScenarioControl,
+  DEFAULT_SCENARIO_CONTROL,
 } from "@/lib/data/scenario";
 
 /* ============================================================
@@ -91,13 +93,15 @@ export interface DerivedImpact {
   daysToHalt: number;
   tier2Catches: number;
   exposedLineIds: string[];
-  halt: DaysToHaltBreakdown;
+  halt: ScenarioHaltBreakdown;
 }
 
 export function deriveImpact(exposedLines: BomLine[]): DerivedImpact {
   const totalCount = BOM.length;
   const exposedCount = exposedLines.length;
-  const halt = daysToHalt(exposedLines);
+  // Runway carries the default scenario's hold accounting (excess hold 0),
+  // so the structural figures are unchanged and the breakdown fields exist.
+  const halt = scenarioHaltImpl(exposedLines, DEFAULT_SCENARIO_CONTROL);
   const risk = buildAtRisk(exposedCount, totalCount);
   return {
     bomLinesExposed: exposedCount,
@@ -117,65 +121,54 @@ export function baselineImpact(): DerivedImpact {
   return deriveImpact(BOM.filter((b) => b.status === "EXPOSED"));
 }
 
-// ---- 4. the graph walk for the interactive control ------------------------
+// ---- 4. the scenario model entry points -----------------------------------
 //
-// Depth budget: containment severity sets a base hop count, and every
-// DURATION_HOP_DAYS of selected duration adds one more hop, because a longer-
-// running disruption has had more time to propagate outward through
-// GRAPH_ADJACENCY. Capped at MAX_DEPTH so a maxed-out control (CRITICAL +
-// 90 days) is a deliberate "everything is touched" extreme, not an
-// unbounded walk.
-const SEVERITY_BASE_DEPTH: Record<ContainmentSeverity, number> = {
-  CONTAINED: 1,
-  ESCALATING: 2,
-  CRITICAL: 3,
-};
-const DURATION_HOP_DAYS = 15;
-const MAX_DEPTH = 6;
+// The old code here was a hop-budget BFS over the undirected GRAPH_ADJACENCY:
+// severity set a base depth, every 15 days of duration added a hop, capped at
+// 6. It is gone because it was structurally dishonest twice over. The walk
+// crossed the customer node (adjacent to all 31 BOM lines) and the decorative
+// density-padding edges, so a maxed control saturated to 31/31 and marked the
+// domestic PCB fab as exposed by a Kaohsiung quarantine; and duration spent
+// as REACH never touched the halt math, so DAYS TO HALT sat at 51 across
+// every duration. The replacement model lives in lib/derive/scenario.ts:
+// exposure is supply-path membership inside a severity-scaled radius, and
+// duration extends the shipment hold, which consumes buffer, which sets the
+// halt. See that module's header for the causal chain.
 
-function containmentDepth(severity: ContainmentSeverity, durationDays: number): number {
-  const extra = Math.floor(durationDays / DURATION_HOP_DAYS);
-  return Math.min(MAX_DEPTH, SEVERITY_BASE_DEPTH[severity] + extra);
-}
+export {
+  affectedRadius,
+  scenarioExposedLines,
+  scenarioHalt,
+  scenarioGraphView,
+  effectiveHoldDays,
+  excessHoldDays,
+  ABSORBABLE_HOLD_DAYS,
+  SEVERITY_THROUGHPUT_LOSS,
+  type AffectedRadius,
+  type ScenarioHaltBreakdown,
+  type ScenarioGraphView,
+} from "@/lib/derive/scenario";
 
-/** BFS over GRAPH_ADJACENCY from `originId`, `maxDepth` hops out (undirected
- *  and is the same adjacency the graph screen's contamination BFS uses). */
-function bfsReachable(originId: string, maxDepth: number): Set<string> {
-  const visited = new Set<string>([originId]);
-  let frontier = [originId];
-  for (let depth = 0; depth < maxDepth && frontier.length > 0; depth++) {
-    const next: string[] = [];
-    for (const id of frontier) {
-      for (const neighbor of GRAPH_ADJACENCY[id] ?? []) {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          next.push(neighbor);
-        }
-      }
-    }
-    frontier = next;
-  }
-  return visited;
-}
-
-/** BOM lines reachable from the control's origin within its containment
- *  depth. Graph BOM-node ids are `G-${BomLine.id}` (see lib/data/graph.ts
- *  buildGraph), so strip the `G-` prefix to recover the BOM line id. */
-export function reachableBomLines(control: ScenarioControlState): BomLine[] {
-  const depth = containmentDepth(control.severity, control.durationDays);
-  const reached = bfsReachable(control.originId, depth);
-  const ids = new Set(
-    [...reached].filter((id) => id.startsWith("G-BOM-")).map((id) => id.slice(2))
-  );
-  return BOM.filter((b) => ids.has(b.id));
-}
-
-/** The single entry point the ImpactSummary panel calls. At the control's
- *  default value this is IDENTICAL to baselineImpact() (short-circuited,
- *  not merely coincidentally equal). Reset is just setting the control
- *  back to DEFAULT_SCENARIO_CONTROL. Any other value runs the live graph
- *  walk above. */
+/** The single entry point the Impact panel (and every simulate consumer)
+ *  calls. No default-value short-circuit anymore: the model is run for every
+ *  control, INCLUDING the default, and lib/derive/guards.ts fails the build
+ *  if the default run does not reproduce baselineImpact() exactly. The
+ *  scripted figures are the model at its default input, not a special case
+ *  the model is excused from. */
 export function deriveScenarioImpact(control: ScenarioControlState): DerivedImpact {
-  if (isDefaultScenarioControl(control)) return baselineImpact();
-  return deriveImpact(reachableBomLines(control));
+  const exposed = scenarioExposedLinesImpl(BOM, control);
+  const halt = scenarioHaltImpl(exposed, control);
+  const totalCount = BOM.length;
+  const exposedCount = exposed.length;
+  const risk = buildAtRisk(exposedCount, totalCount);
+  return {
+    bomLinesExposed: exposedCount,
+    bomLinesTotal: totalCount,
+    buildAtRisk: risk,
+    buildAtRiskLabel: buildAtRiskLabel(risk),
+    daysToHalt: halt.daysToHalt,
+    tier2Catches: exposed.filter((b) => b.tier === 2 && b.erpBlind).length,
+    exposedLineIds: exposed.map((b) => b.id),
+    halt,
+  };
 }
