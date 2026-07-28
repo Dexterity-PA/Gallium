@@ -42,20 +42,20 @@ function buildCorpus(): Entry[] {
   }));
   const suppliers: Entry[] = GRAPH.nodes
     .filter((n) => n.kind === "SUPPLIER")
-    .map((n) => ({ kind: "SUPPLIER", id: n.id, label: n.label, sub: "Supplier / manufacturer", href: "/graph" }));
+    .map((n) => ({ kind: "SUPPLIER", id: n.id, label: n.label, sub: "Supplier / manufacturer", href: "/app/graph" }));
   const sites: Entry[] = SITES.map((s) => ({
     kind: "SITE",
     id: s.id,
     label: s.label,
     sub: s.function ?? "Site",
-    href: "/radar",
+    href: "/app/radar",
   }));
   const actions: Entry[] = ACTIONS.map((a) => ({
     kind: "ACTION",
     id: a.id,
     label: a.title,
     sub: a.cta,
-    href: "/resolve",
+    href: "/app/resolve",
   }));
   return [...parts, ...suppliers, ...sites, ...actions];
 }
@@ -132,7 +132,7 @@ export function CommandPalette({
     //
     // EXPOSURE keeps the two behaviours that belong to it: when it is the
     // current screen, the focused row scrolls into view and its drawer opens
-    // (app/exposure/page.tsx), off the same shared state, no navigation
+    // (app/app/exposure/page.tsx), off the same shared state, no navigation
     // involved.
     if (entry.kind === "PART") {
       const line = BOM.find((b) => b.id === entry.id);

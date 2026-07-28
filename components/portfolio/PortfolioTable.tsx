@@ -378,7 +378,7 @@ export function PortfolioTable({ rows }: { rows: PortfolioProduct[] }) {
           return (
             <Link
               key={p.code}
-              href={`/exposure?product=${encodeURIComponent(p.code)}`}
+              href={`/app/exposure?product=${encodeURIComponent(p.code)}`}
               role="row"
               aria-label={`Open ${p.code} bill of materials`}
               className="block min-h-0 flex-1 border-b border-rule pl-4 py-1.5 transition-colors last:border-b-0 hover:bg-elevated"

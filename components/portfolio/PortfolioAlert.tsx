@@ -102,7 +102,7 @@ export function PortfolioAlert({
       </div>
 
       <Link
-        href="/radar"
+        href="/app/radar"
         className="label shrink-0 border px-3 py-1.5 transition-colors hover:bg-elevated"
         style={{
           color: "var(--interactive)",

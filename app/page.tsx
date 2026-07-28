@@ -1,57 +1,51 @@
-"use client";
+import type { Metadata } from "next";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useDemoState } from "@/lib/hooks/useDemoState";
-import { EntryScreen } from "@/components/entry/EntryScreen";
-import { ResolutionScreen } from "@/components/entry/ResolutionScreen";
-import { resolveUploadRows, type ResolutionSummary } from "@/lib/uploadResolution";
-import type { UploadRow } from "@/lib/csv";
+// Placeholder marketing page. Design comes later; this exists so "/" is a real
+// page instead of a redirect, and so the product tree under /app can own all
+// of the chrome and providers.
+//
+// Server component, no client boundary anywhere in it: the link is a plain
+// anchor rather than next/link, so nothing from the product's client runtime
+// is pulled above the marketing/product line. A hard navigation into /app is
+// also the honest behaviour here, since that is where the providers mount.
+//
+// Everything it renders comes off existing tokens: --bg-base, --text-primary,
+// --text-secondary, the --fs-hero / --fs-body type steps, and the --interactive
+// pair that tokens.css RULE 9 reserves for "you can click this". Nothing new
+// was added to tokens.css for it.
 
-// The app's real landing state (BRIEF: "land on your new entry state instead
-// [of redirecting straight to /radar]"). Renders with zero dashboard chrome
-// (see AppShell's route gating) and owns the entry -> resolution -> dashboard
-// state machine: nothing here is a route change until a BOM has actually
-// been resolved and the dashboard is entered.
-type Stage = { kind: "entry" } | { kind: "resolving"; summary: ResolutionSummary };
+const POSITIONING =
+  "The platform that watches everything that can break the chip supply chain, " +
+  "from export rules to shortages to factories going down, and tells companies " +
+  "which parts are hit and how to fix them before production stops.";
 
-// Where the app lands once a BOM is ingested. PORTFOLIO, not RADAR: the story
-// starts with the customer's own product line, and the event is what happens
-// to one of them. Named once so the post-ingest push and the already-loaded
-// replace below cannot drift apart.
-const LANDING_ROUTE = "/portfolio";
+export const metadata: Metadata = {
+  title: "Gallium",
+  description: POSITIONING,
+};
 
-export default function Home() {
-  const router = useRouter();
-  const { loaded, hydrated, markLoaded } = useDemoState();
-  const [stage, setStage] = useState<Stage>({ kind: "entry" });
+export default function MarketingPage() {
+  return (
+    <main className="flex h-full w-full flex-col items-center justify-center bg-base px-4">
+      <div className="flex max-w-[62ch] flex-col items-center gap-6 text-center">
+        <h1 className="text-hero font-bold tracking-[0.1em] text-primary">
+          GALLIUM
+        </h1>
 
-  // Revisiting "/" (e.g. browser back) once a BOM is already loaded. The
-  // dashboard is the real landing state at that point.
-  useEffect(() => {
-    if (hydrated && loaded) router.replace(LANDING_ROUTE);
-  }, [hydrated, loaded, router]);
+        <p className="text-body leading-body text-secondary">{POSITIONING}</p>
 
-  // Every entry is an upload now: the sample BOM is a committed CSV the
-  // operator drops in, not a button that skips the parser.
-  const handleUpload = useCallback((rows: UploadRow[], fileName: string) => {
-    const summary = resolveUploadRows(rows, "upload", fileName);
-    setStage({ kind: "resolving", summary });
-  }, []);
-
-  const handleComplete = useCallback(
-    (summary: ResolutionSummary) => {
-      markLoaded(summary);
-      router.push(LANDING_ROUTE);
-    },
-    [markLoaded, router]
+        <a
+          href="/app"
+          className="label px-3 py-1.5 transition-colors hover:bg-elevated"
+          style={{
+            color: "var(--interactive)",
+            border: "1px solid var(--interactive-dim)",
+            borderRadius: "var(--radius-max)",
+          }}
+        >
+          VIEW THE PRODUCT
+        </a>
+      </div>
+    </main>
   );
-
-  if (hydrated && loaded) return null; // redirecting to LANDING_ROUTE
-
-  if (stage.kind === "resolving") {
-    return <ResolutionScreen summary={stage.summary} onComplete={handleComplete} />;
-  }
-
-  return <EntryScreen onUpload={handleUpload} />;
 }

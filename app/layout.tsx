@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AppShell } from "@/components/chrome/AppShell";
-import { DemoStateProvider } from "@/lib/hooks/useDemoState";
-import { ScenarioProvider } from "@/lib/hooks/useScenario";
-import { FocusProvider } from "@/lib/focus";
 
+// Document shell only. Everything product-specific (the demo-state, scenario
+// and focus providers, and the AppShell instrument chrome) now lives in
+// app/app/layout.tsx, so the marketing page at "/" renders with none of it:
+// no NavRail, no status bar, no command-palette keybinding, no client
+// providers at all.
 export const metadata: Metadata = {
-  title: "GALLIUM · Chip Supply Chain Shock Platform",
-  description: "Prototype running on representative data.",
+  title: "Gallium",
 };
 
 export default function RootLayout({
@@ -35,15 +35,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className="h-full">
-        <DemoStateProvider>
-          <ScenarioProvider>
-            <FocusProvider>
-              <AppShell>{children}</AppShell>
-            </FocusProvider>
-          </ScenarioProvider>
-        </DemoStateProvider>
-      </body>
+      <body className="h-full">{children}</body>
     </html>
   );
 }

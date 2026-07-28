@@ -15,7 +15,7 @@ import type { BomLine } from "@/lib/types";
 import { FOCUS_PARAM, resolveFocusValue } from "./resolve";
 
 // App-level focused-part state, built the same way as ScenarioProvider
-// (lib/hooks/useScenario.tsx): one context mounted in app/layout.tsx, so a
+// (lib/hooks/useScenario.tsx): one context mounted in app/app/layout.tsx, so a
 // part focused on RADAR is still focused on EXPOSURE or GRAPH. The value is
 // always a resolved BomLine object, never a bare id string, so consumers
 // cannot each re-resolve it differently and disagree.
