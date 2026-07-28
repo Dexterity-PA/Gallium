@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { siteSerif } from "@/lib/site/fonts";
 import { POSITIONING } from "@/lib/site/content";
+import { SITE_URL } from "@/lib/site/seo";
 
 import SiteNav from "@/components/site/SiteNav";
 import Hero from "@/components/site/hero/Hero";
@@ -13,6 +14,7 @@ import Pricing from "@/components/site/sections/Pricing";
 import Faq from "@/components/site/sections/Faq";
 import ClosingCta from "@/components/site/sections/ClosingCta";
 import SiteFooter from "@/components/site/SiteFooter";
+import JsonLd from "@/components/site/JsonLd";
 
 // ---- metadata ------------------------------------------------------------
 // Agent J appends to this block (canonical, opengraph, twitter, JSON-LD
@@ -20,6 +22,24 @@ import SiteFooter from "@/components/site/SiteFooter";
 export const metadata: Metadata = {
   title: "Gallium",
   description: POSITIONING,
+  // SITE_URL is a placeholder domain, pending approval; see lib/site/seo.ts.
+  metadataBase: new URL(SITE_URL),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Gallium",
+    description: POSITIONING,
+    url: "/",
+    siteName: "Gallium",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Gallium",
+    description: POSITIONING,
+  },
 };
 // ---- end metadata --------------------------------------------------------
 
@@ -33,6 +53,7 @@ export const metadata: Metadata = {
 export default function MarketingPage() {
   return (
     <div data-site-root className={siteSerif.variable}>
+      <JsonLd />
       <SiteNav />
       <main>
         <Hero />
