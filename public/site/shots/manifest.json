@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-28T05:49:07.130Z",
-  "commit": "9bf6ae6ccb3ba2e096d2bc81beea06ffc95b96d1",
-  "baseUrl": "http://localhost:3121",
+  "generatedAt": "2026-07-28T06:22:53.233Z",
+  "commit": "4baa9bc2f419ba71a8fe2c0ea368765779524d37",
+  "baseUrl": "http://localhost:3100",
   "server": "production (next build + next start) of this repo",
   "viewport": {
     "width": 1512,
