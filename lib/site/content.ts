@@ -23,6 +23,7 @@ export const NAV = {
     { label: "Company", href: "#company" },
   ],
   cta: { label: "VIEW THE PRODUCT", href: "/app" },
+  menuLabel: "Menu",
 } as const;
 
 export const HERO = {

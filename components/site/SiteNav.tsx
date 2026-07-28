@@ -10,6 +10,10 @@
 // the sanctioned custom motion, not a Reveal replay.
 //
 // Reduced motion: every transition collapses to an instant state change.
+// This is done in CSS (the .site-nav-anim media query below), never by
+// branching the inline style on a JS media-query hook: the hook resolves
+// only after hydration, so a JS branch makes the server HTML disagree with
+// the client's first render and React 19 throws a hydration error.
 //
 // Mobile (below md / 768px): the center links and CTA collapse behind a
 // hamburger button that opens a full screen sheet. The sheet stays mounted
@@ -21,7 +25,6 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { NAV } from "@/lib/site/content";
-import { useReducedMotionSafe } from "@/components/site/motion/useReducedMotionSafe";
 
 const CONDENSE_MS = 200;
 const CONDENSE_AT = 0.8; // fraction of innerHeight the hero must clear
@@ -29,7 +32,6 @@ const CONDENSE_AT = 0.8; // fraction of innerHeight the hero must clear
 export default function SiteNav() {
   const [condensed, setCondensed] = useState(false);
   const [open, setOpen] = useState(false);
-  const reduced = useReducedMotionSafe();
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   // ---- condense on scroll (rAF throttled, passive) -----------------------
@@ -79,13 +81,11 @@ export default function SiteNav() {
     return () => mq.removeEventListener("change", onChange);
   }, [open]);
 
-  const fade = reduced ? "none" : `opacity ${CONDENSE_MS}ms ease`;
-  const sheetTransition = reduced
-    ? "none"
-    : `opacity ${CONDENSE_MS}ms ease, transform ${CONDENSE_MS}ms ease, visibility 0s linear ${
-        open ? "0s" : `${CONDENSE_MS}ms`
-      }`;
-  const iconTransition = reduced ? "none" : `transform ${CONDENSE_MS}ms ease`;
+  const fade = `opacity ${CONDENSE_MS}ms ease`;
+  const sheetTransition = `opacity ${CONDENSE_MS}ms ease, transform ${CONDENSE_MS}ms ease, visibility 0s linear ${
+    open ? "0s" : `${CONDENSE_MS}ms`
+  }`;
+  const iconTransition = `transform ${CONDENSE_MS}ms ease`;
 
   const labelType: CSSProperties = {
     fontFamily: "var(--site-font-mono)",
@@ -108,7 +108,7 @@ export default function SiteNav() {
         {/* background layer: crossfades in when condensed (or sheet open) */}
         <div
           aria-hidden
-          className="absolute inset-0"
+          className="site-nav-anim absolute inset-0"
           style={{
             background: "var(--site-bg)",
             borderBottom: "1px solid var(--site-rule)",
@@ -164,14 +164,14 @@ export default function SiteNav() {
             type="button"
             aria-expanded={open}
             aria-controls="site-nav-sheet"
-            aria-label="Menu"
+            aria-label={NAV.menuLabel}
             onClick={() => (open ? closeSheet(true) : setOpen(true))}
             className="relative -mr-2 flex h-10 w-10 items-center justify-center md:hidden"
             style={{ color: "var(--site-fg)" }}
           >
             <span
               aria-hidden
-              className="absolute block h-px w-5 bg-current"
+              className="site-nav-anim absolute block h-px w-5 bg-current"
               style={{
                 transform: open ? "rotate(45deg)" : "translateY(-3px)",
                 transition: iconTransition,
@@ -179,7 +179,7 @@ export default function SiteNav() {
             />
             <span
               aria-hidden
-              className="absolute block h-px w-5 bg-current"
+              className="site-nav-anim absolute block h-px w-5 bg-current"
               style={{
                 transform: open ? "rotate(-45deg)" : "translateY(3px)",
                 transition: iconTransition,
@@ -194,12 +194,12 @@ export default function SiteNav() {
             can fade and its links leave the tab order when closed. */}
         <div
           id="site-nav-sheet"
-          className="fixed inset-0 md:hidden"
+          className="site-nav-anim fixed inset-0 md:hidden"
           style={{
             background: "var(--site-bg)",
             opacity: open ? 1 : 0,
             visibility: open ? "visible" : "hidden",
-            transform: open || reduced ? "translateY(0)" : "translateY(-8px)",
+            transform: open ? "translateY(0)" : "translateY(-8px)",
             transition: sheetTransition,
             overflowY: "auto",
             overscrollBehavior: "contain",
@@ -246,10 +246,19 @@ export default function SiteNav() {
       </div>
 
       {/* hover ink shifts are instant on purpose: motion budget is
-          transform and opacity only, so no color transitions */}
+          transform and opacity only, so no color transitions.
+          Reduced motion collapses every nav transition to an instant state
+          change here in CSS, so server and client always render identical
+          inline styles (see the hydration note at the top of the file).
+          The sheet's closed translateY(-8px) is invisible under reduced
+          motion: the sheet is opacity 0 + visibility hidden while closed
+          and jumps straight to translateY(0) when opened. */}
       <style>{`
         .site-nav-link:hover { color: var(--site-fg); }
         .site-nav-cta:hover { background: var(--site-accent); color: var(--site-bg); }
+        @media (prefers-reduced-motion: reduce) {
+          .site-nav-anim { transition: none !important; }
+        }
       `}</style>
     </header>
   );

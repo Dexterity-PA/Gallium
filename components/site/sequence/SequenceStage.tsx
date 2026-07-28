@@ -11,6 +11,7 @@ import {
 import { SectionHeader } from "@/components/site/primitives/Section";
 import { Figure } from "@/components/site/primitives/Figure";
 import { Reveal } from "@/components/site/motion/Reveal";
+import { useReducedMotionSafe } from "@/components/site/motion/useReducedMotionSafe";
 import { StatePane } from "./StatePane";
 import type { SequenceData } from "./types";
 
@@ -91,10 +92,19 @@ const KEYFRAMES = [
 function StateLayer({
   progress,
   state,
+  frozen,
   children,
 }: {
   progress: MotionValue<number>;
   state: 0 | 1 | 2;
+  /** True under reduced motion: render a plain, static layer so framer never
+   *  hands the keyframes off to a WAAPI ViewTimeline animation. The whole
+   *  PinnedStage is display: none under reduced motion (ReducedStage shows
+   *  instead), but a motion.div would still register a running scroll-driven
+   *  animation on the hidden subtree; a plain div registers nothing. Only
+   *  ever flips after hydration (useReducedMotionSafe hydrates as false), so
+   *  server and client first render stay identical. */
+  frozen: boolean;
   children: ReactNode;
 }) {
   const kf = KEYFRAMES[state];
@@ -103,6 +113,17 @@ function StateLayer({
   const pointerEvents = useTransform(opacity, (v) =>
     v > 0.5 ? ("auto" as const) : ("none" as const)
   );
+  if (frozen) {
+    return (
+      <div
+        data-sequence-layer
+        className="col-start-1 row-start-1 min-w-0"
+        style={{ opacity: state === 2 ? 1 : 0, pointerEvents: "none" }}
+      >
+        {children}
+      </div>
+    );
+  }
   return (
     <motion.div
       data-sequence-layer
@@ -120,6 +141,7 @@ function PinnedStage({
   data,
 }: Omit<StageProps, "closing">) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotionSafe();
   const { scrollYProgress } = useScroll({
     target: trackRef,
     offset: ["start start", "end end"],
@@ -154,7 +176,12 @@ function PinnedStage({
             <SectionHeader>{header}</SectionHeader>
             <div className="relative grid" style={{ marginTop: "var(--site-sp-4)" }}>
               {([0, 1, 2] as const).map((state) => (
-                <StateLayer key={state} progress={scrollYProgress} state={state}>
+                <StateLayer
+                  key={state}
+                  progress={scrollYProgress}
+                  state={state}
+                  frozen={reduced}
+                >
                   <div style={CAPTION_INDEX}>{`0${state + 1} / 03`}</div>
                   <p className="mt-2" style={CAPTION}>
                     {captions[state]}
@@ -167,7 +194,12 @@ function PinnedStage({
           <Figure>
             <div className="grid">
               {([0, 1, 2] as const).map((state) => (
-                <StateLayer key={state} progress={scrollYProgress} state={state}>
+                <StateLayer
+                  key={state}
+                  progress={scrollYProgress}
+                  state={state}
+                  frozen={reduced}
+                >
                   <StatePane
                     data={data}
                     state={state}
