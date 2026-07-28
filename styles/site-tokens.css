@@ -1,0 +1,154 @@
+/* ============================================================================
+   GALLIUM MARKETING SITE: TOKENS
+   The marketing layer's contract. Owned by the Wave 0 orchestrator only.
+
+   This file imports nothing from styles/tokens.css and overrides nothing in
+   it. The product tokens stay authoritative for everything under /app and for
+   any product component embedded on the marketing page. These tokens exist so
+   the marketing page can breathe at a different scale without touching the
+   instrument's contract.
+   ============================================================================ */
+
+:root {
+  /* ---- surfaces ----------------------------------------------------------
+     --site-bg is one elevation step above the product's base #0a0b0e, using
+     the product's own whisper-step vocabulary (base #0a0b0e, panel #0e1014,
+     elevated #12151a). #101216 sits between panel and elevated: lifted enough
+     that an embedded product frame at #0a0b0e visibly recesses into the page
+     like a dark instrument behind glass, close enough that the two layers
+     read as the same world.
+
+     --site-recess is the product's base surface, for the interior of Figure
+     frames and any embedded product view, so the instrument always sits
+     visually below the page. */
+  --site-bg: #101216;
+  --site-recess: #0a0b0e;
+
+  /* ---- ink ---------------------------------------------------------------
+     The page's ink is warm ivory against the cool near-black, a deliberate
+     two-temperature scheme: the product is a cold instrument, the page that
+     presents it is set in warm editorial ink. */
+  --site-fg: #e6e3dc;
+  --site-fg-dim: #9b9891;
+
+  /* ---- rules -------------------------------------------------------------
+     Alpha hairlines, warm-tinted to match the ink. */
+  --site-rule: rgba(230, 227, 220, 0.08);
+  --site-rule-strong: rgba(230, 227, 220, 0.16);
+
+  /* ---- accent ------------------------------------------------------------
+     Exactly one. A restrained brass gold, in the same hue family as the
+     product's --focus (#b8933f): on the instrument that hue means "attention
+     is here", and on the marketing page the accent marks the same thing,
+     links and actions. It is NOT the product's incident red (#d1495b), and
+     it never touches violet (reserved: modeled data) or red (reserved:
+     exposure). */
+  --site-accent: #c2a05a;
+
+  /* ---- type scale --------------------------------------------------------
+     Exactly four steps, fluid via clamp(). Viewport range 375px to 2560px;
+     every step caps so 2560px does not balloon. */
+  --site-t-hero: clamp(2.375rem, 1.25rem + 3.8vw, 4.75rem);
+  --site-t-section: clamp(1.625rem, 1.15rem + 1.6vw, 2.625rem);
+  --site-t-body: clamp(1.0625rem, 0.98rem + 0.35vw, 1.1875rem);
+  --site-t-label: clamp(0.6875rem, 0.66rem + 0.1vw, 0.75rem);
+
+  --site-lh-tight: 1.08;
+  --site-lh-heading: 1.2;
+  --site-lh-body: 1.62;
+  --site-ls-label: 0.08em;
+
+  /* ---- space scale -------------------------------------------------------
+     The product's --sp-* exists (4/6/8/12/16px) but is instrument density;
+     marketing rhythm needs a larger register, so the site defines its own
+     scale rather than reusing it. Six steps plus the section gap. */
+  --site-sp-1: 0.5rem;
+  --site-sp-2: 1rem;
+  --site-sp-3: 1.5rem;
+  --site-sp-4: 2.5rem;
+  --site-sp-5: 4rem;
+  --site-sp-6: 6.5rem;
+  --site-sp-section: clamp(6rem, 4rem + 5vw, 10rem);
+
+  /* ---- layout ------------------------------------------------------------
+     One content column. --site-gutter is the page's horizontal inset,
+     --site-max the column cap, --site-ordinal-col the left margin column
+     that carries section ordinals at md and up. */
+  --site-gutter: clamp(1.25rem, 4vw, 4rem);
+  --site-max: 76rem;
+  --site-ordinal-col: 5.5rem;
+
+  /* ---- faces -------------------------------------------------------------
+     --site-font-text resolves through the next/font variable set by
+     lib/site/fonts.ts (Newsreader, self-hosted, SIL OFL 1.1).
+     --site-font-mono reuses the product's Ioskeley Mono @font-face that
+     app/globals.css already declares and preloads; declaring it a second
+     time through next/font/local would ship the same bytes twice. */
+  --site-font-text: var(--font-site-serif, Georgia, "Times New Roman", serif);
+  --site-font-mono: "Ioskeley Mono", "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* ============================================================================
+   SITE ROOT SCOPING
+   app/globals.css pins body to height: 100% / overflow: hidden because the
+   product is a fixed instrument panel. The marketing page is a document and
+   must scroll. These overrides apply ONLY when the marketing root
+   ([data-site-root], rendered by app/page.tsx) is in the tree, so the
+   product routes keep their fixed panel exactly as before.
+   ============================================================================ */
+
+body:has([data-site-root]) {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  /* the marquee and any full-bleed band clip here instead of widening the page */
+  overflow-x: clip;
+  background: var(--site-bg);
+  color: var(--site-fg);
+}
+
+html:has([data-site-root]) {
+  height: auto;
+  background: var(--site-bg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:has([data-site-root]) {
+    scroll-behavior: smooth;
+  }
+}
+
+[data-site-root] {
+  font-family: var(--site-font-text);
+  font-size: var(--site-t-body);
+  line-height: var(--site-lh-body);
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  /* prose figures should not inherit the instrument's tabular-nums */
+  font-variant-numeric: normal;
+}
+
+/* ============================================================================
+   RULES: load-bearing, same spirit as styles/tokens.css.
+
+   1. VIOLET STILL MEANS MODELED DATA. INCIDENT RED STILL MEANS EXPOSURE.
+      Neither appears decoratively anywhere on the marketing site. They may
+      appear only inside an embedded product view or screenshot, where they
+      carry their product meaning.
+
+   2. --site-accent IS THE ONLY MARKETING ACCENT.
+      Links, actions, and the rare emphasised figure. If a second accent
+      seems necessary, the design is wrong, not the palette.
+
+   3. TYPE IS TWO FACES AND FOUR STEPS.
+      Newsreader for headlines and prose. Ioskeley Mono for labels,
+      ordinals, figures, and nav. No third face, no fifth step.
+
+   4. NO SHADOWS, NO GRADIENTS, NO RADIUS ABOVE 2px.
+      The product's geometry rules carry over. Frames are 1px rules.
+
+   5. MOTION IS THE FOUR PRIMITIVES.
+      Reveal, CountUp, RuleDraw, and the marquee's own loop. Transform and
+      opacity only. Everything respects prefers-reduced-motion and nothing
+      replays on scroll back.
+   ============================================================================ */

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+// Marketing-layer tokens. Scoped: everything in it keys off [data-site-root],
+// which only app/page.tsx renders, so the product under /app is untouched.
+import "../styles/site-tokens.css";
 
 // Document shell only. Everything product-specific (the demo-state, scenario
 // and focus providers, and the AppShell instrument chrome) now lives in
