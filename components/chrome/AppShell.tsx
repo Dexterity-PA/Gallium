@@ -21,11 +21,11 @@ export const GUARDS = SCENARIO_GUARDS_OK && FOCUS_GUARDS_OK;
 // The fixed instrument panel (DESIGN.md §4). 100vh, no page scroll; the two
 // chrome bands never scroll away. 1px hairlines separate every region.
 //
-// Chrome gating: the entry/resolution flow lives at "/" and must render with
+// Chrome gating: the entry/resolution flow lives at "/app" and must render with
 // NO dashboard chrome at all: no LIVE badge, no OBSERVED/MODELED
 // counters (see AGENTS brief). Every other route keeps the exact chrome below,
 // unchanged, but only once a BOM is "loaded" (sample or uploaded). A direct
-// or stale visit to a dashboard route before that bounces back to "/"
+// or stale visit to a dashboard route before that bounces back to "/app"
 // client-side, no full reload. `useDemoState` is the localStorage-backed
 // flag; `hydrated` avoids flashing the wrong thing before the client can
 // read it.
@@ -35,7 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { loaded, hydrated } = useDemoState();
-  const isEntryRoute = pathname === "/";
+  const isEntryRoute = pathname === "/app";
 
   const togglePalette = useCallback(() => setPaletteOpen((v) => !v), []);
 
@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // any dashboard route back to the entry screen.
   useEffect(() => {
     if (hydrated && !loaded && !isEntryRoute) {
-      router.replace("/");
+      router.replace("/app");
     }
   }, [hydrated, loaded, isEntryRoute, router]);
 

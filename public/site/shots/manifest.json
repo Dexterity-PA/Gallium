@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-07-28T06:22:53.233Z",
+  "commit": "4baa9bc2f419ba71a8fe2c0ea368765779524d37",
+  "baseUrl": "http://localhost:3100",
+  "server": "production (next build + next start) of this repo",
+  "viewport": {
+    "width": 1512,
+    "height": 857
+  },
+  "deviceScaleFactor": 2,
+  "focusMpn": "ISO5852SDW",
+  "note": "All frames show the fictional sample dataset (Meridian Drive Systems / MD-7200). No in-app sample badge exists on product screens; the marketing Figure frame adds its own SAMPLE DATA label. Crops are CSS-px rects at 1512x857; pixel dimensions are crop x pixelScale.",
+  "shots": [
+    {
+      "file": "01-portfolio-rollup.png",
+      "sourceRoute": "/app/portfolio",
+      "viewport": {
+        "width": 1512,
+        "height": 857
+      },
+      "deviceScaleFactor": 2,
+      "crop": {
+        "x": 49,
+        "y": 27,
+        "width": 1463,
+        "height": 172
+      },
+      "description": "Portfolio summary: screen header (7 PRODUCTS / 230 BOM LINES / 45 EXPOSED), quarantine alert band, and the five-metric rollup (7 / 230 / 45 / $6.3M / 51 days).",
+      "encoding": "png@2x",
+      "pixelScale": 2,
+      "bytes": 66126,
+      "status": "ok"
+    },
+    {
+      "file": "02-exposure-struck-origin.png",
+      "sourceRoute": "/app/exposure",
+      "viewport": {
+        "width": 1512,
+        "height": 857
+      },
+      "deviceScaleFactor": 2,
+      "crop": {
+        "x": 49,
+        "y": 54,
+        "width": 1463,
+        "height": 308
+      },
+      "description": "Exposure table: filter chips, column header, and the first eleven BOM rows. Rows 7-9 are the Tier-2 catches with the ERP origin (USA) struck through and the actual exposure resolved to TW-KAOHSIUNG; ISO5852SDW is the gate driver row.",
+      "encoding": "png@2x",
+      "pixelScale": 2,
+      "bytes": 213563,
+      "status": "ok"
+    },
+    {
+      "file": "03-radar-isolated-path.png",
+      "sourceRoute": "/app/radar?focus=ISO5852SDW",
+      "viewport": {
+        "width": 1512,
+        "height": 857
+      },
+      "deviceScaleFactor": 2,
+      "crop": {
+        "x": 430,
+        "y": 200,
+        "width": 761,
+        "height": 400
+      },
+      "description": "Radar map with the shared focus set to the gate driver: the network dims and the part's supply path isolates (Kaohsiung A&T / Taipei distribution to Dallas wafer fab to Meridian Rockford). Map pane only; side panels are outside the crop.",
+      "encoding": "png@1.5x",
+      "pixelScale": 1.5,
+      "bytes": 291003,
+      "status": "ok"
+    },
+    {
+      "file": "04-graph-exposed-path.png",
+      "sourceRoute": "/app/graph",
+      "viewport": {
+        "width": 1512,
+        "height": 857
+      },
+      "deviceScaleFactor": 2,
+      "crop": {
+        "x": 65,
+        "y": 58,
+        "width": 1440,
+        "height": 790
+      },
+      "description": "Supply graph, exposed path fully fanned out: Kaohsiung backend A&T to 10 suppliers (5 direct, 5 via zone sites) to 14 BOM lines, with the contamination-path banner, provenance stats (16 obs / 8 mod) and the column legend.",
+      "encoding": "png@2x",
+      "pixelScale": 2,
+      "bytes": 215018,
+      "status": "ok"
+    },
+    {
+      "file": "05-resolve-action-card.png",
+      "sourceRoute": "/app/resolve",
+      "viewport": {
+        "width": 1512,
+        "height": 857
+      },
+      "deviceScaleFactor": 2,
+      "crop": {
+        "x": 430,
+        "y": 80,
+        "width": 761,
+        "height": 310
+      },
+      "description": "Resolve: the AIR FREIGHT REROUTE action card expanded (units, incremental cost, transit vs sea, covered MPNs, GENERATE FREIGHT AUTHORIZATION CTA) under the 0-observed-resolved progress header.",
+      "encoding": "png@2x",
+      "pixelScale": 2,
+      "bytes": 84927,
+      "status": "ok"
+    },
+    {
+      "file": "06-hindsight-ledger.png",
+      "sourceRoute": "/app/hindsight",
+      "viewport": {
+        "width": 1512,
+        "height": 857
+      },
+      "deviceScaleFactor": 2,
+      "crop": {
+        "x": 65,
+        "y": 56,
+        "width": 1447,
+        "height": 730
+      },
+      "description": "Hindsight detection ledger: FLAGGED 9D BEFORE ERP headline (3 caught, 1 missed, median of 4 verified events) and all four event rows with flagged-vs-benchmark timestamps and lead deltas, including the honest -5D miss.",
+      "encoding": "png@2x",
+      "pixelScale": 2,
+      "bytes": 281962,
+      "status": "ok"
+    }
+  ]
+}

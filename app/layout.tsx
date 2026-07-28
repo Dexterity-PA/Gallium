@@ -1,13 +1,22 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site/seo";
 import "./globals.css";
-import { AppShell } from "@/components/chrome/AppShell";
-import { DemoStateProvider } from "@/lib/hooks/useDemoState";
-import { ScenarioProvider } from "@/lib/hooks/useScenario";
-import { FocusProvider } from "@/lib/focus";
+// Marketing-layer tokens. Scoped: everything in it keys off [data-site-root],
+// which only app/page.tsx renders, so the product under /app is untouched.
+import "../styles/site-tokens.css";
 
+// Document shell only. Everything product-specific (the demo-state, scenario
+// and focus providers, and the AppShell instrument chrome) now lives in
+// app/app/layout.tsx, so the marketing page at "/" renders with none of it:
+// no NavRail, no status bar, no command-palette keybinding, no client
+// providers at all.
 export const metadata: Metadata = {
-  title: "GALLIUM · Chip Supply Chain Shock Platform",
-  description: "Prototype running on representative data.",
+  title: "Gallium",
+  // Every route (including /app/*) inherits app/opengraph-image.tsx, and its
+  // og:image URL must resolve absolutely. Without this, product routes baked
+  // http://localhost:3000 into their static HTML at build time. SITE_URL is
+  // the placeholder domain, pending approval; see lib/site/seo.ts.
+  metadataBase: new URL(SITE_URL),
 };
 
 export default function RootLayout({
@@ -35,15 +44,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className="h-full">
-        <DemoStateProvider>
-          <ScenarioProvider>
-            <FocusProvider>
-              <AppShell>{children}</AppShell>
-            </FocusProvider>
-          </ScenarioProvider>
-        </DemoStateProvider>
-      </body>
+      <body className="h-full">{children}</body>
     </html>
   );
 }

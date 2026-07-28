@@ -8,7 +8,7 @@ import { toLoadedSummary } from "@/lib/uploadResolution";
 // entry/resolution flow and the real dashboard (see AppShell). Backed by
 // localStorage rather than a real backend, so:
 //   - the dashboard survives a hard reload once loaded
-//   - RESET can clear it and bounce back to "/" without a full page reload
+//   - RESET can clear it and bounce back to "/app" without a full page reload
 // `hydrated` distinguishes "we don't know yet" (first paint, before the
 // client can read localStorage) from "known to be false". AppShell needs
 // that distinction to avoid flashing the wrong thing.

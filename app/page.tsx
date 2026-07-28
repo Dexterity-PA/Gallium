@@ -1,57 +1,72 @@
-"use client";
+import type { Metadata } from "next";
+import { siteSerif } from "@/lib/site/fonts";
+import { POSITIONING } from "@/lib/site/content";
+import { SITE_URL } from "@/lib/site/seo";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useDemoState } from "@/lib/hooks/useDemoState";
-import { EntryScreen } from "@/components/entry/EntryScreen";
-import { ResolutionScreen } from "@/components/entry/ResolutionScreen";
-import { resolveUploadRows, type ResolutionSummary } from "@/lib/uploadResolution";
-import type { UploadRow } from "@/lib/csv";
+import SiteNav from "@/components/site/SiteNav";
+import Hero from "@/components/site/hero/Hero";
+import EventMarquee from "@/components/site/EventMarquee";
+import Problem from "@/components/site/sections/Problem";
+import Capabilities from "@/components/site/sections/Capabilities";
+import Wedge from "@/components/site/sections/Wedge";
+import ProductSequence from "@/components/site/sections/ProductSequence";
+import Pricing from "@/components/site/sections/Pricing";
+import Faq from "@/components/site/sections/Faq";
+import ClosingCta from "@/components/site/sections/ClosingCta";
+import SiteFooter from "@/components/site/SiteFooter";
+import JsonLd from "@/components/site/JsonLd";
 
-// The app's real landing state (BRIEF: "land on your new entry state instead
-// [of redirecting straight to /radar]"). Renders with zero dashboard chrome
-// (see AppShell's route gating) and owns the entry -> resolution -> dashboard
-// state machine: nothing here is a route change until a BOM has actually
-// been resolved and the dashboard is entered.
-type Stage = { kind: "entry" } | { kind: "resolving"; summary: ResolutionSummary };
+// ---- metadata ------------------------------------------------------------
+// Agent J appends to this block (canonical, opengraph, twitter, JSON-LD
+// wiring). J extends, never rewrites what is already here.
+export const metadata: Metadata = {
+  title: "Gallium",
+  description: POSITIONING,
+  // SITE_URL is a placeholder domain, pending approval; see lib/site/seo.ts.
+  metadataBase: new URL(SITE_URL),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Gallium",
+    description: POSITIONING,
+    url: "/",
+    siteName: "Gallium",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Gallium",
+    description: POSITIONING,
+  },
+};
+// ---- end metadata --------------------------------------------------------
 
-// Where the app lands once a BOM is ingested. PORTFOLIO, not RADAR: the story
-// starts with the customer's own product line, and the event is what happens
-// to one of them. Named once so the post-ingest push and the already-loaded
-// replace below cannot drift apart.
-const LANDING_ROUTE = "/portfolio";
-
-export default function Home() {
-  const router = useRouter();
-  const { loaded, hydrated, markLoaded } = useDemoState();
-  const [stage, setStage] = useState<Stage>({ kind: "entry" });
-
-  // Revisiting "/" (e.g. browser back) once a BOM is already loaded. The
-  // dashboard is the real landing state at that point.
-  useEffect(() => {
-    if (hydrated && loaded) router.replace(LANDING_ROUTE);
-  }, [hydrated, loaded, router]);
-
-  // Every entry is an upload now: the sample BOM is a committed CSV the
-  // operator drops in, not a button that skips the parser.
-  const handleUpload = useCallback((rows: UploadRow[], fileName: string) => {
-    const summary = resolveUploadRows(rows, "upload", fileName);
-    setStage({ kind: "resolving", summary });
-  }, []);
-
-  const handleComplete = useCallback(
-    (summary: ResolutionSummary) => {
-      markLoaded(summary);
-      router.push(LANDING_ROUTE);
-    },
-    [markLoaded, router]
+// The marketing page. Server component skeleton: every band is a Wave 1
+// section slot. [data-site-root] is load-bearing; styles/site-tokens.css
+// keys the scroll unlock and the site's base ink off it, and siteSerif's
+// variable class scopes the Newsreader @font-face to this route only.
+//
+// Section anchor contract (nav links point at these):
+//   #product -> ProductSequence, #pricing -> Pricing, #company -> ClosingCta.
+export default function MarketingPage() {
+  return (
+    <div data-site-root className={siteSerif.variable}>
+      <JsonLd />
+      <SiteNav />
+      <main>
+        <Hero />
+        <EventMarquee />
+        <Problem />
+        <Capabilities />
+        <Wedge />
+        <ProductSequence />
+        <Pricing />
+        <Faq />
+        <ClosingCta />
+      </main>
+      <SiteFooter />
+    </div>
   );
-
-  if (hydrated && loaded) return null; // redirecting to LANDING_ROUTE
-
-  if (stage.kind === "resolving") {
-    return <ResolutionScreen summary={stage.summary} onComplete={handleComplete} />;
-  }
-
-  return <EntryScreen onUpload={handleUpload} />;
 }

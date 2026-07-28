@@ -2,7 +2,7 @@
 // rebuild). Bottom-left, always visible. A footnote, not a panel: three
 // rows, each folding a second, shorter explanation into its phrasing.
 //
-// Rendered from app/graph/page.tsx (outside components/graph/, so it can't
+// Rendered from app/app/graph/page.tsx (outside components/graph/, so it can't
 // take a prop from SupplyGraph without editing a file out of scope). The
 // full-network node count is read directly from GRAPH here instead, the
 // same source SupplyGraph's own full-network tally derives from, so the two

@@ -24,7 +24,7 @@ import { GraphStats } from "@/components/graph/GraphStats";
 import type { GraphNode } from "@/lib/types";
 
 // The layout, the schedule and both tallies all live in flowModel.ts so the
-// panel header (app/graph/page.tsx) reads the exact numbers this canvas draws.
+// panel header (app/app/graph/page.tsx) reads the exact numbers this canvas draws.
 // Nothing size-describing is computed locally any more.
 
 function maxWeightOf(view: FlowView): number {
